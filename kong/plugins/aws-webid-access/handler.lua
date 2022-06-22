@@ -7,13 +7,32 @@ local meta = require "kong.meta"
 local constants = require "kong.constants"
 local request_util = require "kong.plugins.aws-webid-access.request-util"
 local kong = kong
+local GLOBAL_QUERY_OPTS = { workspace = ngx.null, show_ws_id = true }
 
+local table_insert = table.insert
+local get_uri_args = kong.request.get_query
+local set_uri_args = kong.service.request.set_query
+local clear_header = kong.service.request.clear_header
+local get_header = kong.request.get_header
+local set_header = kong.service.request.set_header
+local get_headers = kong.request.get_headers
+local set_headers = kong.service.request.set_headers
+local set_method = kong.service.request.set_method
+local set_path = kong.service.request.set_path
+local get_raw_body = kong.request.get_raw_body
+local set_raw_body = kong.service.request.set_raw_body
+local encode_args = ngx.encode_args
+local ngx_decode_args = ngx.decode_args
 
 local VIA_HEADER = constants.HEADERS.VIA
 local VIA_HEADER_VALUE = meta._NAME .. "/" .. meta._VERSION
 local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-webid-access.iam_role_temp_creds.%s"
 local AWS_PORT = 443
 local re_gmatch = ngx.re.gmatch
+
+local function isNil(s)
+    return s == nil or s == ''
+end
 
 local function split (inputstr, sep)
   if sep == nil then
@@ -26,6 +45,14 @@ local function split (inputstr, sep)
   return t
 end
 
+local function load_service_from_db(service_pk)
+  local service, err = kong.db.services:select(service_pk, GLOBAL_QUERY_OPTS)
+  if service == nil then
+    -- the third value means "do not cache"
+    return nil, err, -1
+  end
+  return service
+end
 
 local function fetch_aws_credentials(sts_conf)
   local sts = require('kong.plugins.aws-webid-access.webidentity-sts-credentials')
@@ -85,15 +112,6 @@ local function validate_http_status_code(status_code)
   return false
 end
 
-
---[[
-  Response format should be
-  {
-      "statusCode": httpStatusCode,
-      "headers": { "headerName": "headerValue", ... },
-      "body": "..."
-  }
---]]
 local function validate_custom_response(response)
   if not validate_http_status_code(response.statusCode) then
     return nil, "statusCode validation failed"
@@ -146,21 +164,6 @@ local function extract_proxy_response(content)
 end
 
 local function retrieve_token()
-  -- local args = kong.request.get_query()
-  -- for _, v in ipairs(conf.uri_param_names) do
-  --   if args[v] then
-  --     return args[v]
-  --   end
-  -- end
-
-  -- local var = ngx.var
-  -- for _, v in ipairs(conf.cookie_names) do
-  --   local cookie = var["cookie_" .. v]
-  --   if cookie and cookie ~= "" then
-  --     return cookie
-  --   end
-  -- end
-
   local request_headers = kong.request.get_headers()
   for _, v in ipairs({"authorization"}) do
     local token_header = request_headers[v]
@@ -189,12 +192,7 @@ end
 
 local AWSLambdaSTS = {}
 
--- function get_cache_credentials(iam_role_cred_cache_key, sts_conf)
-  
---   return iam_role_credentials
--- end
-
-function get_iam_credentials(sts_conf)
+local function get_iam_credentials(sts_conf)
   local iam_role_cred_cache_key = fmt(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn or "default")
   local iam_role_credentials = kong.cache:get(
     iam_role_cred_cache_key,
@@ -202,7 +200,6 @@ function get_iam_credentials(sts_conf)
     fetch_aws_credentials,
     sts_conf
   )
-  -- iam_role_credentials = fetch_aws_credentials(sts_conf)
 
   local expires = 0;
 
@@ -212,10 +209,13 @@ function get_iam_credentials(sts_conf)
   local now = math.floor(get_now() / 1000)
 
   if((now+60)>=expires) then
+    iam_role_credentials, err = fetch_aws_credentials(sts_conf)
+    if err then
+      return kong.response.exit(401, { message = "Unable to get new IAM credentials! Check token!"})
+    end
     kong.log.inspect("key expiring")
     kong.cache:invalidate_local(iam_role_cred_cache_key)
     local err
-    iam_role_credentials, err = fetch_aws_credentials(sts_conf)
     kong.log.inspect(err);
     kong.log.inspect("invalidated cache and fetched fresh credentials")
   else
@@ -226,10 +226,13 @@ function get_iam_credentials(sts_conf)
 end
 
 function AWSLambdaSTS:access(conf)
-  local host = conf.aws_lambda_url
-  local splitHost = split(host, ".")
-  local region = splitHost[#splitHost+1-3]
-  local path = "/"
+  local service, err = load_service_from_db({id =conf.service_id})
+  if service == nil then
+    return kong.response.exit(500, { message = "Unable to retrive bound service!"})
+  end
+  local host = service.host
+
+  local region = conf.aws_region
   local port = AWS_PORT
   local sts_conf = {
      RoleArn = conf.aws_assume_role_arn,
@@ -237,8 +240,8 @@ function AWSLambdaSTS:access(conf)
      RoleSessionName = conf.aws_assume_role_name,
   }
 
-  kong.log.inspect(host)
-  kong.log.inspect(region)
+  kong.log.inspect(err)
+  kong.log.inspect(service)
   kong.log.inspect("data above")
 
   local upstream_body = kong.table.new(0, 6)
@@ -259,8 +262,8 @@ function AWSLambdaSTS:access(conf)
   end
 
   if conf.forward_request_uri then
-    upstream_body.request_uri = kong.request.get_path_with_query()
-    upstream_body.request_uri_args = kong.request.get_query()
+    upstream_body.request_uri = kong.request.get_path()
+    upstream_body.request_uri_args = kong.request.get_raw_query()
   end
 
   if conf.forward_request_body then
@@ -293,37 +296,33 @@ function AWSLambdaSTS:access(conf)
                  " to forward request values: ", err)
   end
 
-  if not region then
-    return error("no region specified")
-  end
+  -- upstream_body.request_headers["original-authorization"] = upstream_body.request_headers.authorization
+  upstream_body.request_headers.authorization = nil
+  upstream_body.request_headers.host = host
 
   local opts = {
     region = region,
     service = "lambda",
-    method = "POST",
-    headers = {
-      -- ["X-Amz-Target"] = "invoke",
-      -- ["X-Amz-Invocation-Type"] = conf.invocation_type,
-      -- ["X-Amz-Log-Type"] = conf.log_type,
-      -- ["Content-Type"] = "application/x-amz-json-1.1",
+    method = upstream_body.request_method,
+    headers = kong.table.merge(upstream_body.request_headers, {
       ["Content-Length"] = upstream_body_json and tostring(#upstream_body_json),
-    },
+    }),
     body = upstream_body_json,
-    path = path,
+    path = upstream_body.request_uri,
     host = host,
     port = port,
-    query = ""
+    query = upstream_body.request_uri_args
   }
 
+  
   -- no credentials provided, so try the IAM metadata service
   kong.log.inspect("trying to get the key")
   
   if get_iam_credentials(sts_conf) then
     kong.log.inspect("not error")
-    
   else
     kong.log.inspect("error")
-    
+    return kong.response.exit(401, { message = "Unable to get new IAM credentials! Check token!"})
   end
 
   local iam_role_credentials = get_iam_credentials(sts_conf)
@@ -336,13 +335,16 @@ function AWSLambdaSTS:access(conf)
 
   opts.access_key = iam_role_credentials.access_key
   opts.secret_key = iam_role_credentials.secret_key
-  opts.headers["X-Amz-Security-Token"] = iam_role_credentials.session_token
 
   local request
   request, err = aws_v4(opts)
   if err then
     return error(err)
   end
+
+  request.headers["X-Amz-Security-Token"] = iam_role_credentials.session_token
+
+  kong.log.inspect(request);
 
   local uri = port and fmt("https://%s:%d", host, port)
                     or fmt("https://%s", host)
@@ -359,8 +361,8 @@ function AWSLambdaSTS:access(conf)
   local client = http.new()
   client:set_timeout(conf.timeout)
   local kong_wait_time_start = get_now()
-  local res, err = client:request_uri(uri, {
-    method = "POST",
+  local res, err = client:request_uri(request.url, {
+    method = upstream_body.request_method,
     path = request.url,
     body = request.body,
     headers = request.headers,
@@ -427,7 +429,7 @@ function AWSLambdaSTS:access(conf)
   return kong.response.exit(status, content, headers)
 end
 
-AWSLambdaSTS.PRIORITY = 750
+AWSLambdaSTS.PRIORITY = 10
 AWSLambdaSTS.VERSION = meta.version
 
 return AWSLambdaSTS

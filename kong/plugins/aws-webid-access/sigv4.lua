@@ -86,17 +86,21 @@ local function prepare_awsv4_request(tbl)
   local path = tbl.path
   local host = tbl.host
 
+  
   if path and not canonicalURI then
     canonicalURI = canonicalise_path(path)
   elseif canonicalURI == nil or canonicalURI == "" then
     canonicalURI = "/"
   end
 
+  
   local canonical_querystring = tbl.canonical_querystring
   local query = tbl.query
   if query and not canonical_querystring then
     canonical_querystring = canonicalise_query_string(query)
   end
+  kong.log.inspect(tbl.query)
+  kong.log.inspect(tbl.canonical_querystring)
 
   local req_headers = tbl.headers or {}
   local req_payload = tbl.body
@@ -216,7 +220,7 @@ local function prepare_awsv4_request(tbl)
   local scheme = tls and "https" or "http"
   local url = scheme .. "://" .. host_header .. target
 
-  return {
+  local returned = {
     url = url,
     host = host,
     port = port,
@@ -226,6 +230,8 @@ local function prepare_awsv4_request(tbl)
     headers = headers,
     body = req_payload,
   }
+
+  return returned
 end
 
 return prepare_awsv4_request

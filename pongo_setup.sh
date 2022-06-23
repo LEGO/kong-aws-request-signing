@@ -4,7 +4,7 @@ kong migrations bootstrap --force && kong start
 
 export service_name=example && export plugin_name=aws-webid-access && export lambda_url=odxij524stle6wxmjcj5cnz65e0sroxk.lambda-url.eu-west-1.on.aws
 
-export auth_token= 
+export auth_token=
 
 
 curl -i -X POST \
@@ -17,10 +17,20 @@ curl -i -X POST \
  --data "name=$plugin_name" \
  --data 'config.aws_assume_role_arn=arn:aws:iam::300063049296:role/azure-lambda' \
  --data 'config.aws_assume_role_name=azure-lambda'\
- --data 'config.aws_region=eu-west-1' 
+ --data 'config.aws_region=eu-west-1' \
+ --data 'config.aws_service=lambda' 
 
 
 curl -v -H "Authorization: Bearer $auth_token" http://localhost:8000/$service_name
+
+curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" http://localhost:8000/$service_name?query=true \
+  --data '{"username":"xyz","password":"xyz"}' 
+  
+  
+curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" https://dev.api.legogroup.io/echo?query=true \
+  --data '{"username":"xyz","password":"xyz"}' 
+
+kong reload && kong reload && kong reload
 
 curl -i -X PATCH \
  --url "http://localhost:8001/services/$service_name" \

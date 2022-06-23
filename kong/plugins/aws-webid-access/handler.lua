@@ -290,7 +290,7 @@ function AWSLambdaSTS:access(conf)
     upstream_body = kong.table.merge(kong.request.get_query(), body_args)
   end
 
-  local upstream_body_json, err = cjson.encode(upstream_body)
+  local upstream_body_json, err = cjson.encode(upstream_body.request_body_args)
   if not upstream_body_json then
     kong.log.err("could not JSON encode upstream body",
                  " to forward request values: ", err)
@@ -302,7 +302,7 @@ function AWSLambdaSTS:access(conf)
 
   local opts = {
     region = region,
-    service = "lambda",
+    service = conf.aws_service,
     method = upstream_body.request_method,
     headers = kong.table.merge(upstream_body.request_headers, {
       ["Content-Length"] = upstream_body_json and tostring(#upstream_body_json),
@@ -361,9 +361,11 @@ function AWSLambdaSTS:access(conf)
   local client = http.new()
   client:set_timeout(conf.timeout)
   local kong_wait_time_start = get_now()
+
+  kong.log.inspect("sending request");
+
   local res, err = client:request_uri(request.url, {
     method = upstream_body.request_method,
-    path = request.url,
     body = request.body,
     headers = request.headers,
     ssl_verify = false,
@@ -379,6 +381,8 @@ function AWSLambdaSTS:access(conf)
   if res.status >= 400 then
     return error(content)
   end
+
+  kong.log.inspect("response of request");
 
   -- setting the latency here is a bit tricky, but because we are not
   -- actually proxying, it will not be overwritten

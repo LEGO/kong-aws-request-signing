@@ -77,6 +77,10 @@ return {
         { aws_region = {
           type = "string",
           required = true,
+        } },
+        { aws_service = {
+          type = "string",
+          required = true,
         } }
         }
       },

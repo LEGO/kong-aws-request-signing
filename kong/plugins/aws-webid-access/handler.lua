@@ -157,7 +157,7 @@ local function get_iam_credentials(sts_conf)
 end
 
 function AWSLambdaSTS:access(conf)
-  local service, err = load_service_from_db({id =conf.service_id})
+  local service = kong.router.get_service()
 
   if service == nil then
     return kong.response.exit(500, { message = "Unable to retrive bound service!"})
@@ -172,7 +172,7 @@ function AWSLambdaSTS:access(conf)
      RoleSessionName = conf.aws_assume_role_name,
   }
 
-  kong.log.inspect(err)
+  kong.log.inspect(conf)
   kong.log.inspect(service)
   kong.log.inspect("data above")
 
@@ -227,7 +227,25 @@ function AWSLambdaSTS:access(conf)
                  " to forward request values: ", err)
   end
 
-  -- upstream_body.request_headers["original-authorization"] = upstream_body.request_headers.authorization
+  kong.log.inspect("trying to get the key")
+  
+  if get_iam_credentials(sts_conf) then
+    kong.log.inspect("not error")
+  else
+    kong.log.inspect("error")
+    return kong.response.exit(401, { message = "Unable to get new IAM credentials! Check token!"})
+  end
+
+  local iam_role_credentials = get_iam_credentials(sts_conf)
+
+  kong.log.inspect(iam_role_credentials)
+
+  if not iam_role_credentials then
+    return kong.response.exit(401, { message = "Unable to get new IAM credentials! Check token!"})
+  end
+
+  upstream_body.request_headers["original-authorization"] = upstream_body.request_headers.authorization
+  upstream_body.request_headers["x-amz-security-token"] = iam_role_credentials.session_token
   upstream_body.request_headers.authorization = nil
   upstream_body.request_headers.host = host
 
@@ -247,22 +265,7 @@ function AWSLambdaSTS:access(conf)
 
   
   -- no credentials provided, so try the IAM metadata service
-  kong.log.inspect("trying to get the key")
   
-  if get_iam_credentials(sts_conf) then
-    kong.log.inspect("not error")
-  else
-    kong.log.inspect("error")
-    return kong.response.exit(401, { message = "Unable to get new IAM credentials! Check token!"})
-  end
-
-  local iam_role_credentials = get_iam_credentials(sts_conf)
-
-  kong.log.inspect(iam_role_credentials)
-
-  if not iam_role_credentials then
-    return kong.response.exit(401, { message = "Unable to get new IAM credentials! Check token!"})
-  end
 
   opts.access_key = iam_role_credentials.access_key
   opts.secret_key = iam_role_credentials.secret_key
@@ -272,8 +275,6 @@ function AWSLambdaSTS:access(conf)
   if err then
     return error(err)
   end
-
-  request.headers["x-amz-security-token"] = iam_role_credentials.session_token
 
   kong.log.inspect(request);
 
@@ -294,7 +295,6 @@ function AWSLambdaSTS:access(conf)
   client:set_timeout(conf.timeout)
   local kong_wait_time_start = get_now()
 
-  request.headers["x-amz-security-token"] = iam_role_credentials.session_token
   -- comment/uncomment under this line to toggle kong/lua request
 
   -- kong.log.inspect("sending request");

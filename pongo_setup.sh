@@ -4,7 +4,6 @@ kong migrations bootstrap --force && kong start
 
 export service_name=echo && export plugin_name=aws-webid-access && export lambda_url=odxij524stle6wxmjcj5cnz65e0sroxk.lambda-url.eu-west-1.on.aws
 
-export auth_token=
 
 // config close to the default amma conf
 
@@ -39,8 +38,11 @@ curl -i -X POST \
  --data 'config.aws_region=eu-west-1' \
  --data 'config.aws_service=lambda' 
 
+export auth_token=
 
 curl -v -H "Authorization: Bearer $auth_token" http://localhost:8000/digital/api/$service_name
+
+curl -v -H "Authorization: Bearer $auth_token" http://localhost:8000/$service_name
 
 curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" http://localhost:8000/$service_name?query=true \
   --data '{"username":"xyz","password":"xyz"}' 

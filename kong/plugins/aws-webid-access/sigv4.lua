@@ -79,6 +79,7 @@ local function derive_signing_key(kSecret, date, region, service)
 end
 
 local function prepare_awsv4_request(tbl)
+  kong.log.inspect(tbl)
   local region = tbl.region
   local service = tbl.service
   local request_method = tbl.method
@@ -99,8 +100,7 @@ local function prepare_awsv4_request(tbl)
   if query and not canonical_querystring then
     canonical_querystring = canonicalise_query_string(query)
   end
-  kong.log.inspect(tbl.query)
-  kong.log.inspect(tbl.canonical_querystring)
+  
 
   local req_headers = tbl.headers or {}
   local req_payload = tbl.body
@@ -142,16 +142,21 @@ local function prepare_awsv4_request(tbl)
     ["X-Amz-Date"] = req_date;
     Host = host_header;
   }
-  local add_auth_header = true
+  
   for k, v in pairs(req_headers) do
     k = k:gsub("%f[^%z-]%w", string.upper) -- convert to standard header title case
-    if k == "Authorization" then
-      add_auth_header = false
-    elseif v == false then -- don't allow a default value for this header
-      v = nil
-    end
     headers[k] = v
   end
+  
+  local lowerHeaders = {}
+  for k, v in pairs(headers) do
+    lowerHeaders[k:lower()] = v
+  end
+
+  kong.log.inspect(lowerHeaders)
+
+  headers = nil;
+  req_headers = nil;
 
   -- Task 1: Create a Canonical Request For Signature Version 4
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
@@ -159,14 +164,14 @@ local function prepare_awsv4_request(tbl)
     -- We structure this code in a way so that we only have to sort once.
     canonical_headers, signed_headers = {}, {}
     local i = 0
-    for name, value in pairs(headers) do
+    for name, value in pairs(lowerHeaders) do
       if value then -- ignore headers with 'false', they are used to override defaults
         i = i + 1
         local name_lower = name:lower()
         signed_headers[i] = name_lower
-        if canonical_headers[name_lower] ~= nil then
-          return nil, "header collision"
-        end
+        -- if canonical_headers[name_lower] ~= nil then
+        --   return nil, "header collision"
+        -- end
         canonical_headers[name_lower] = pl_string.strip(value)
       end
     end
@@ -209,9 +214,7 @@ local function prepare_awsv4_request(tbl)
     .. " Credential=" .. access_key .. "/" .. credential_scope
     .. ", SignedHeaders=" .. signed_headers
     .. ", Signature=" .. signature
-  if add_auth_header then
-    headers.Authorization = authorization
-  end
+    lowerHeaders.authorization = authorization
 
   local target = path or canonicalURI
   if query or canonical_querystring then
@@ -227,7 +230,7 @@ local function prepare_awsv4_request(tbl)
     tls = tls,
     method = request_method,
     target = target,
-    headers = headers,
+    headers = lowerHeaders,
     body = req_payload,
   }
 

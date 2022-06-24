@@ -21,6 +21,7 @@ local set_method = kong.service.request.set_method
 local set_path = kong.service.request.set_path
 local get_raw_body = kong.request.get_raw_body
 local set_raw_body = kong.service.request.set_raw_body
+local set_body = kong.service.request.set_body
 local encode_args = ngx.encode_args
 local ngx_decode_args = ngx.decode_args
 
@@ -92,77 +93,6 @@ local function get_now()
 end
 
 
-local function validate_http_status_code(status_code)
-  if not status_code then
-    return false
-  end
-
-  if type(status_code) == "string" then
-    status_code = tonumber(status_code)
-
-    if not status_code then
-      return false
-    end
-  end
-
-  if status_code >= 100 and status_code <= 599 then
-    return status_code
-  end
-
-  return false
-end
-
-local function validate_custom_response(response)
-  if not validate_http_status_code(response.statusCode) then
-    return nil, "statusCode validation failed"
-  end
-
-  if response.headers ~= nil and type(response.headers) ~= "table" then
-    return nil, "headers must be a table"
-  end
-
-  if response.body ~= nil and type(response.body) ~= "string" then
-    return nil, "body must be a string"
-  end
-
-  return true
-end
-
-
-local function extract_proxy_response(content)
-  local serialized_content, err = cjson.decode(content)
-  if not serialized_content then
-    return nil, err
-  end
-
-  local ok, err = validate_custom_response(serialized_content)
-  if not ok then
-    return nil, err
-  end
-
-  local headers = serialized_content.headers or {}
-  local body = serialized_content.body or ""
-  local isBase64Encoded = serialized_content.isBase64Encoded or false
-  if isBase64Encoded then
-    body = ngx_decode_base64(body)
-  end
-
-  local multiValueHeaders = serialized_content.multiValueHeaders
-  if multiValueHeaders then
-    for header, values in pairs(multiValueHeaders) do
-      headers[header] = values
-    end
-  end
-
-  headers["Content-Length"] = #body
-
-  return {
-    status_code = tonumber(serialized_content.statusCode),
-    body = body,
-    headers = headers,
-  }
-end
-
 local function retrieve_token()
   local request_headers = kong.request.get_headers()
   for _, v in ipairs({"authorization"}) do
@@ -193,6 +123,7 @@ end
 local AWSLambdaSTS = {}
 
 local function get_iam_credentials(sts_conf)
+
   local iam_role_cred_cache_key = fmt(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn or "default")
   local iam_role_credentials = kong.cache:get(
     iam_role_cred_cache_key,
@@ -227,6 +158,7 @@ end
 
 function AWSLambdaSTS:access(conf)
   local service, err = load_service_from_db({id =conf.service_id})
+
   if service == nil then
     return kong.response.exit(500, { message = "Unable to retrive bound service!"})
   end
@@ -245,7 +177,6 @@ function AWSLambdaSTS:access(conf)
   kong.log.inspect("data above")
 
   local upstream_body = kong.table.new(0, 6)
-  local ctx = ngx.ctx
 
   if conf.forward_request_body or
     conf.forward_request_headers or
@@ -308,7 +239,7 @@ function AWSLambdaSTS:access(conf)
       ["Content-Length"] = upstream_body_json and tostring(#upstream_body_json),
     }),
     body = upstream_body_json,
-    path = upstream_body.request_uri,
+    path = ngx_var.upstream_uri,
     host = host,
     port = port,
     query = upstream_body.request_uri_args
@@ -342,98 +273,84 @@ function AWSLambdaSTS:access(conf)
     return error(err)
   end
 
-  request.headers["X-Amz-Security-Token"] = iam_role_credentials.session_token
+  request.headers["x-amz-security-token"] = iam_role_credentials.session_token
 
   kong.log.inspect(request);
 
-  local uri = port and fmt("https://%s:%d", host, port)
-                    or fmt("https://%s", host)
+  -- kong.log.inspect(get_raw_body())
+  -- kong.log.inspect(request.body)
 
-  local proxy_opts
-  if conf.proxy_url then
-    -- lua-resty-http uses the request scheme to determine which of
-    -- http_proxy/https_proxy it will use, and from this plugin's POV, the
-    -- request scheme is always https
-    proxy_opts = { https_proxy = conf.proxy_url }
-  end
+  -- kong.log.inspect(request.headers)
+  -- kong.log.inspect(get_headers())
 
-  -- Trigger request
+  set_headers(request.headers)
+  set_raw_body(request.body)
+
+  -- kong.log.inspect(get_headers())
+  -- kong.log.inspect(get_raw_body())
+  -- kong.log.inspect(get_uri_args())
+
   local client = http.new()
   client:set_timeout(conf.timeout)
   local kong_wait_time_start = get_now()
 
-  kong.log.inspect("sending request");
+  request.headers["x-amz-security-token"] = iam_role_credentials.session_token
+  -- comment/uncomment under this line to toggle kong/lua request
 
-  local res, err = client:request_uri(request.url, {
-    method = upstream_body.request_method,
-    body = request.body,
-    headers = request.headers,
-    ssl_verify = false,
-    proxy_opts = proxy_opts,
-    keepalive_timeout = conf.keepalive,
-  })
-  if not res then
-    return error(err)
-  end
+  -- kong.log.inspect("sending request");
 
-  local content = res.body
+  -- local res, err = client:request_uri(request.url, {
+  --   method = upstream_body.request_method,
+  --   body = request.body,
+  --   headers = request.headers,
+  --   ssl_verify = false,
+  --   proxy_opts = proxy_opts,
+  --   keepalive_timeout = conf.keepalive,
+  -- })
+  -- if not res then
+  --   return error(err)
+  -- end
 
-  if res.status >= 400 then
-    return error(content)
-  end
+  -- local content = res.body
 
-  kong.log.inspect("response of request");
+  -- kong.log.inspect("response of request");
 
-  -- setting the latency here is a bit tricky, but because we are not
-  -- actually proxying, it will not be overwritten
-  ctx.KONG_WAITING_TIME = get_now() - kong_wait_time_start
-  local headers = res.headers
+  -- -- setting the latency here is a bit tricky, but because we are not
+  -- -- actually proxying, it will not be overwritten
+  -- ctx.KONG_WAITING_TIME = get_now() - kong_wait_time_start
+  -- local headers = res.headers
 
-  if ngx_var.http2 then
-    headers["Connection"] = nil
-    headers["Keep-Alive"] = nil
-    headers["Proxy-Connection"] = nil
-    headers["Upgrade"] = nil
-    headers["Transfer-Encoding"] = nil
-  end
+  -- if ngx_var.http2 then
+  --   headers["Connection"] = nil
+  --   headers["Keep-Alive"] = nil
+  --   headers["Proxy-Connection"] = nil
+  --   headers["Upgrade"] = nil
+  --   headers["Transfer-Encoding"] = nil
+  -- end
 
-  local status
+  -- local status
 
-  if conf.is_proxy_integration then
-    local proxy_response, err = extract_proxy_response(content)
-    if not proxy_response then
-      kong.log.err(err)
-      return kong.response.exit(502, { message = "Bad Gateway",
-                                       error = "could not JSON decode Lambda " ..
-                                         "function response: " .. err })
-    end
+  -- if not status then
+  --   if conf.unhandled_status
+  --     and headers["X-Amz-Function-Error"] == "Unhandled"
+  --   then
+  --     status = conf.unhandled_status
 
-    status = proxy_response.status_code
-    headers = kong.table.merge(headers, proxy_response.headers)
-    content = proxy_response.body
-  end
+  --   else
+  --     status = res.status
+  --   end
+  -- end
 
-  if not status then
-    if conf.unhandled_status
-      and headers["X-Amz-Function-Error"] == "Unhandled"
-    then
-      status = conf.unhandled_status
+  -- headers = kong.table.merge(headers) -- create a copy of headers
 
-    else
-      status = res.status
-    end
-  end
+  -- if kong.configuration.enabled_headers[VIA_HEADER] then
+  --   headers[VIA_HEADER] = VIA_HEADER_VALUE
+  -- end
 
-  headers = kong.table.merge(headers) -- create a copy of headers
-
-  if kong.configuration.enabled_headers[VIA_HEADER] then
-    headers[VIA_HEADER] = VIA_HEADER_VALUE
-  end
-
-  return kong.response.exit(status, content, headers)
+  -- return kong.response.exit(status, content, headers)
 end
 
-AWSLambdaSTS.PRIORITY = 10
+AWSLambdaSTS.PRIORITY = -19999
 AWSLambdaSTS.VERSION = meta.version
 
 return AWSLambdaSTS

@@ -31,7 +31,7 @@ local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-webid-access.iam_role_temp
 local AWS_PORT = 443
 local re_gmatch = ngx.re.gmatch
 
-local function isNil(s)
+local function isEmpty(s)
     return s == nil or s == ''
 end
 

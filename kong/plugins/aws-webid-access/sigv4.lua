@@ -7,6 +7,14 @@ local openssl_hmac = require "resty.openssl.hmac"
 
 local ALGORITHM = "AWS4-HMAC-SHA256"
 
+local function notEmpty(s)
+  return not (s == nil) and not (s == '')
+end
+
+local function isEmpty(s)
+  return s == nil or s == ''
+end
+
 local CHAR_TO_HEX = {};
 for i = 0, 255 do
   local char = string.char(i)
@@ -217,7 +225,7 @@ local function prepare_awsv4_request(tbl)
     lowerHeaders.authorization = authorization
 
   local target = path or canonicalURI
-  if query or canonical_querystring then
+  if notEmpty(query) or notEmpty(canonical_querystring) then
     target = target .. "?" .. (query or canonical_querystring)
   end
   local scheme = tls and "https" or "http"

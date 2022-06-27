@@ -1,7 +1,5 @@
 local http  = require "resty.http"
 local json  = require "cjson"
-local aws_v4 = require "kong.plugins.aws-lambda.v4"
-local utils = require "kong.tools.utils"
 local ngx_now = ngx.now
 local kong = kong
 

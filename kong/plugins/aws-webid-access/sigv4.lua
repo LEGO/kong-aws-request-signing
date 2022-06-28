@@ -161,8 +161,6 @@ local function prepare_awsv4_request(tbl)
     lowerHeaders[k:lower()] = v
   end
 
-  kong.log.inspect(lowerHeaders)
-
   headers = nil;
   req_headers = nil;
 
@@ -225,6 +223,7 @@ local function prepare_awsv4_request(tbl)
     lowerHeaders.authorization = authorization
 
   local target = path or canonicalURI
+
   if notEmpty(query) or notEmpty(canonical_querystring) then
     target = target .. "?" .. (query or canonical_querystring)
   end

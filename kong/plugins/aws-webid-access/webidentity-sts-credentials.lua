@@ -36,18 +36,6 @@ local function fetch_assume_role_credentials(assume_role_arn,
     WebIdentityToken = web_identity_token
   }
 
-  -- local assume_role_sign_params = {
-  --   region          = aws_region,
-  --   service         = "sts",
-  --   access_key      = access_key,
-  --   secret_key      = secret_key,
-  --   method          = "GET",
-  --   host            = sts_host,
-  --   port            = 443,
-  --   headers         = assume_role_request_headers,
-  --   query           = utils.encode_args(assume_role_query_params)
-  -- }
-
   -- Call STS to assume role
   local client = http.new()
   client:set_timeout(DEFAULT_HTTP_CLINET_TIMEOUT)

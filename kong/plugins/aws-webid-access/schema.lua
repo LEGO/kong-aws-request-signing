@@ -21,13 +21,11 @@ return {
         { aws_assume_role_arn = {
           type = "string",
           encrypted = true, -- Kong Enterprise-exclusive feature, does nothing in Kong CE
-          referenceable = true,
           required = true,
         } },
         { aws_assume_role_name = {
           type = "string",
           encrypted = true, -- Kong Enterprise-exclusive feature, does nothing in Kong CE
-          referenceable = true,
           required = true,
         } },
         { aws_region = {

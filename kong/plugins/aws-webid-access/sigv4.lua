@@ -2,8 +2,11 @@
 -- http://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html
 -- Slightly modified version of https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/v4.lua
 
+-- BSD License
 local resty_sha256 = require "resty.sha256"
+-- MIT License
 local pl_string = require "pl.stringx"
+-- BSD 2-Clause License
 local openssl_hmac = require "resty.openssl.hmac"
 
 local ALGORITHM = "AWS4-HMAC-SHA256"

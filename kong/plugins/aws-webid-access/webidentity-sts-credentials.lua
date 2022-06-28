@@ -1,4 +1,6 @@
+-- BSD 2-Clause License
 local http  = require "resty.http"
+-- MIT License
 local json  = require "cjson"
 local ngx_now = ngx.now
 local kong = kong

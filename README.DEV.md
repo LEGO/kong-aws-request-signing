@@ -1,16 +1,34 @@
-# restarting dev env
+# This document is intended for Developers
+## Below you will find some actions you might want to perform during plugin development
+
+### 1. restarting dev env
+```sh
 pongo down && pongo run --no-cassandra && pongo shell
+```
 
-# starting kong
+### 2. starting kong
+```sh
 kong migrations bootstrap --force && kong start
+```
 
-# exporting ENV var
-export service_name=echo && export plugin_name=aws-webid-access && export lambda_url=odxij524stle6wxmjcj5cnz65e0sroxk.lambda-url.eu-west-1.on.aws
+### 3. reloading kong
+```sh
+kong reload
+```
 
-# exporting azure token
+### 4. exporting ENV var used below
+```sh
+export service_name=echo && export plugin_name=aws-webid-access && export lambda_url={your lambda function url}
+```
+
+### 5. exporting Token used to AssumeRoleWithWebIdentity
+```sh
 export auth_token=
+```
 
-# config close to the default amma conf lambda
+
+### 6. Configuring a service a route and adding the Kong Request-Transformer and this plugin
+```sh
 curl -i -X POST \
  --url http://localhost:8001/services/ \
  --data "name=$service_name" \
@@ -26,9 +44,10 @@ curl -i -X POST \
  --data 'config.aws_assume_role_name=azure-lambda'\
  --data 'config.aws_region=eu-west-1' \
  --data 'config.aws_service=lambda' 
+```
 
-# simple config lambda
-
+### 7. Simple service + route + plugin configuration
+```sh
 curl -i -X POST \
  --url http://localhost:8001/services/ \
  --data "name=$service_name" \
@@ -41,34 +60,39 @@ curl -i -X POST \
  --data 'config.aws_assume_role_name=azure-lambda'\
  --data 'config.aws_region=eu-west-1' \
  --data 'config.aws_service=lambda' 
+```
 
-
-# simple lambda
-curl -v -H "Authorization: Bearer $auth_token" http://localhost:8000/$service_name
-
-# complex lambda
+### 8. Simple Kong call -> Fits No 6
+```sh
 curl -v -H "Authorization: Bearer $auth_token" http://localhost:8000/digital/api/$service_name 
+```
 
-# simple lambda 
-curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" http://localhost:8000/$service_name?query=true --data '{"username":"xyz","password":"xyz"}' 
+### 9. Simple Kong call -> Fits No 7
+```sh
+curl -v -H "Authorization: Bearer $auth_token" http://localhost:8000/$service_name
+```
 
-# complex lambda 
+### 10. Complex Kong call -> Fits No 6 (with Body)
+```sh
 curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" http://localhost:8000/digital/api/$service_name?query=true --data '{"username":"xyz","password":"xyz"}' 
+```
 
+
+### 11. Complex Kong call -> Fits No 7 (with Body)  
+```sh
+curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" http://localhost:8000/$service_name?query=true --data '{"username":"xyz","password":"xyz"}' 
+```
+
+
+### 12. Just like above with forced credentials refresh.
+```sh
 curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" -H "x-sts-refresh: true" http://localhost:8000/digital/api/$service_name?query=true --data '{"username":"xyz","password":"xyz"}' 
-  
-# reloading kong ( if necessary )
-kong reload && kong reload && kong reload
+```
 
-# change upstream to $lamda-url
+### 13. Change upstream of the service
+```sh
 curl -i -X PATCH \
  --url "http://localhost:8001/services/$service_name" \
- --data "url=https://$lambda_url/"
- 
-# change upstream to kong echo
- curl -i -X PATCH \
- --url "http://localhost:8001/services/$service_name" \
- --data "url=https://dev.api.legogroup.io/"
+ --data "url=https://{your new upstream}/"
+```
 
-# todo
-# + ( feature not bug) create a different cache key ( one client can sign the rest's requests)

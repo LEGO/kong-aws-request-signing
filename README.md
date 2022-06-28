@@ -1,4 +1,4 @@
-## KONG-PLUGIN-AWS-WEBID-ACCESS
+## KONG-PLUGIN-AWS-SIGV4-WEBID-AUTH
 
 This plugin was made to allow the secure use of AWS Lambdas as upstreams in Kong using [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/). This way we reduce the cost and complexity by bypassing AWS API Gateway.
 

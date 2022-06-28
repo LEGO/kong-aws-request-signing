@@ -1,7 +1,7 @@
 local typedefs = require "kong.db.schema.typedefs"
 
 return {
-  name = "aws-webid-access",
+  name = "aws-sigv4-webid-auth",
   fields = {
     {
       -- this plugin will only be applied to Services

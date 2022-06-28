@@ -18,7 +18,7 @@ kong reload
 
 ### 4. exporting ENV var used below
 ```sh
-export service_name=echo && export plugin_name=aws-webid-access && export lambda_url={your lambda function url}
+export service_name=echo && export plugin_name=aws-sigv4-webid-auth && export lambda_url={your lambda function url}
 ```
 
 ### 5. exporting Token used to AssumeRoleWithWebIdentity

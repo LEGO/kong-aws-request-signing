@@ -1,5 +1,6 @@
 -- Performs AWSv4 Signing
 -- http://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html
+-- Slightly modified version of https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/v4.lua
 
 local resty_sha256 = require "resty.sha256"
 local pl_string = require "pl.stringx"
@@ -87,7 +88,6 @@ local function derive_signing_key(kSecret, date, region, service)
 end
 
 local function prepare_awsv4_request(tbl)
-  kong.log.inspect(tbl)
   local region = tbl.region
   local service = tbl.service
   local request_method = tbl.method
@@ -146,23 +146,17 @@ local function prepare_awsv4_request(tbl)
     end
   end
 
-  local headers = {
-    ["X-Amz-Date"] = req_date;
-    Host = host_header;
+  local lowerHeaders = {
+    ["x-amz-date"] = req_date;
+    host = host_header;
   }
+
+  kong.log.inspect(lowerHeaders)
   
   for k, v in pairs(req_headers) do
-    k = k:gsub("%f[^%z-]%w", string.upper) -- convert to standard header title case
-    headers[k] = v
+    k = k:lower() -- convert to lower case header name
+    lowerHeaders[k] = v
   end
-  
-  local lowerHeaders = {}
-  for k, v in pairs(headers) do
-    lowerHeaders[k:lower()] = v
-  end
-
-  headers = nil;
-  req_headers = nil;
 
   -- Task 1: Create a Canonical Request For Signature Version 4
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
@@ -175,9 +169,6 @@ local function prepare_awsv4_request(tbl)
         i = i + 1
         local name_lower = name:lower()
         signed_headers[i] = name_lower
-        -- if canonical_headers[name_lower] ~= nil then
-        --   return nil, "header collision"
-        -- end
         canonical_headers[name_lower] = pl_string.strip(value)
       end
     end

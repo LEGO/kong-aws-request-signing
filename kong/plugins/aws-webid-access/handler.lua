@@ -13,13 +13,15 @@ local re_gmatch = ngx.re.gmatch
 local function fetch_aws_credentials(sts_conf)
   local sts = require('kong.plugins.aws-webid-access.webidentity-sts-credentials')
 
-  local result = sts.fetch_assume_role_credentials(sts_conf.RoleArn, sts_conf.RoleSessionName, sts_conf.WebIdentityToken);
-  kong.log.debug(result)
-  return result
+  local result, err = sts.fetch_assume_role_credentials(sts_conf.RoleArn, sts_conf.RoleSessionName, sts_conf.WebIdentityToken)
+
+  if err then
+    return nil, err
+  end
+  return result, nil
 end
 
 local ngx_update_time = ngx.update_time
-local tostring = tostring
 local ngx_now = ngx.now
 local ngx_var = ngx.var
 local error = error
@@ -34,7 +36,7 @@ end
 
 local function retrieve_token()
   local request_headers = kong.request.get_headers()
-  for _, v in ipairs({"authorization"}) do
+  for _, v in ipairs({ "authorization" }) do
     local token_header = request_headers[v]
     if token_header then
       if type(token_header) == "table" then
@@ -61,15 +63,25 @@ end
 
 local AWSLambdaSTS = {}
 
-local function get_iam_credentials(sts_conf)
+local function get_iam_credentials(sts_conf,refresh)
+  local iam_role_cred_cache_key = fmt(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)
 
-  local iam_role_cred_cache_key = fmt(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn or "default")
-  local iam_role_credentials = kong.cache:get(
+  if refresh then
+    kong.log.debug("invalidated cache!")
+    kong.cache:invalidate_local(iam_role_cred_cache_key)
+  end
+
+  local iam_role_credentials, err = kong.cache:get(
     iam_role_cred_cache_key,
     nil,
     fetch_aws_credentials,
     sts_conf
   )
+
+  if err then
+    kong.log.inspect(err);
+    return kong.response.exit(401, { message = "Unable to get the IAM credentials! Check token!" })
+  end
 
   local expires = 0;
 
@@ -77,18 +89,20 @@ local function get_iam_credentials(sts_conf)
     expires = iam_role_credentials.expiration
   end
   local now = get_now()
-  local err
 
-  if((now+60)>=expires) then
-    iam_role_credentials, err = fetch_aws_credentials(sts_conf)
+  if ((now + 60) >= expires) then
+    kong.cache:invalidate_local(iam_role_cred_cache_key)
+    iam_role_credentials, err = kong.cache:get(
+      iam_role_cred_cache_key,
+      nil,
+      fetch_aws_credentials,
+      sts_conf
+    )
     if err then
       kong.log.inspect(err);
-      return kong.response.exit(401, { message = "Unable to get new IAM credentials! Check token!"})
+      return kong.response.exit(401, { message = "Unable to refresh expired IAM credentials! Check token!" })
     end
-    kong.cache:invalidate_local(iam_role_cred_cache_key)
-    kong.log.inspect("invalidated cache and fetched fresh credentials")
-  else
-    kong.log.inspect("key not expiring")
+    kong.log.debug("expiring key , invalidated cache and fetched fresh credentials!")
   end
 
   return iam_role_credentials
@@ -98,49 +112,36 @@ function AWSLambdaSTS:access(conf)
   local service = kong.router.get_service()
 
   if service == nil then
-    return kong.response.exit(500, { message = "Unable to retrive bound service!"})
+    return kong.response.exit(500, { message = "Unable to retrive bound service!" })
   end
   local host = service.host
 
   local region = conf.aws_region
-  local port = AWS_PORT
   local sts_conf = {
-     RoleArn = conf.aws_assume_role_arn,
-     WebIdentityToken = retrieve_token(),
-     RoleSessionName = conf.aws_assume_role_name,
+    RoleArn = conf.aws_assume_role_arn,
+    WebIdentityToken = retrieve_token(),
+    RoleSessionName = conf.aws_assume_role_name,
   }
 
   local upstream_headers = kong.request.get_headers()
-  
-  if get_iam_credentials(sts_conf) then
-    kong.log.inspect("not error")
-  else
-    kong.log.inspect("error")
-    return kong.response.exit(401, { message = "Unable to get new IAM credentials! Check token!"})
-  end
 
-  local iam_role_credentials = get_iam_credentials(sts_conf)
-
-  if not iam_role_credentials then
-    return kong.response.exit(401, { message = "Unable to get new IAM credentials! Check token!"})
-  end
+  local iam_role_credentials = get_iam_credentials(sts_conf,upstream_headers["x-sts-refresh"])
 
   upstream_headers["original-authorization"] = upstream_headers.authorization
   upstream_headers["x-amz-security-token"] = iam_role_credentials.session_token
   upstream_headers.authorization = nil
   upstream_headers.host = host
 
+
   local opts = {
     region = region,
     service = conf.aws_service,
     method = kong.request.get_method(),
-    headers = kong.table.merge(upstream_headers, {
-      ["Content-Length"] = kong.request.get_raw_query() and tostring(#kong.request.get_raw_query()),
-    }),
+    headers = upstream_headers,
     body = get_raw_body(),
     path = ngx_var.upstream_uri,
     host = host,
-    port = port,
+    port = AWS_PORT,
     query = kong.request.get_raw_query(),
     access_key = iam_role_credentials.access_key,
     secret_key = iam_role_credentials.secret_key,
@@ -152,7 +153,7 @@ function AWSLambdaSTS:access(conf)
   end
 
   if not request then
-    return kong.response.exit(500, { message = "Unable to get SIGV4 the request!"})
+    return kong.response.exit(500, { message = "Unable to SIGV4 the request!" })
   end
 
   set_headers(request.headers)

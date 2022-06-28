@@ -54,6 +54,8 @@ curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/jso
 
 # complex lambda 
 curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" http://localhost:8000/digital/api/$service_name?query=true --data '{"username":"xyz","password":"xyz"}' 
+
+curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" -H "x-sts-refresh: true" http://localhost:8000/digital/api/$service_name?query=true --data '{"username":"xyz","password":"xyz"}' 
   
 # reloading kong ( if necessary )
 kong reload && kong reload && kong reload

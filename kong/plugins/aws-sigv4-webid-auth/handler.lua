@@ -123,11 +123,11 @@ function AWSLambdaSTS:access(conf)
     RoleSessionName = conf.aws_assume_role_name,
   }
 
-  local upstream_headers = kong.request.get_headers()
+  local upstream_headers = {}
 
   local iam_role_credentials = get_iam_credentials(sts_conf,upstream_headers["x-sts-refresh"])
 
-  upstream_headers["original-authorization"] = upstream_headers.authorization
+  upstream_headers["x-authorization"] = kong.request.get_headers().authorization
   upstream_headers["x-amz-security-token"] = iam_role_credentials.session_token
   upstream_headers.authorization = nil
   upstream_headers.host = host
@@ -160,7 +160,7 @@ function AWSLambdaSTS:access(conf)
   set_raw_body(request.body)
 end
 
-AWSLambdaSTS.PRIORITY = 20
+AWSLambdaSTS.PRIORITY = -10000
 AWSLambdaSTS.VERSION = meta.version
 
 return AWSLambdaSTS

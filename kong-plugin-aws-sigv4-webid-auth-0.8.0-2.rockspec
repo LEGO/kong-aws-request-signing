@@ -1,6 +1,6 @@
 local plugin_name = "aws-sigv4-webid-auth"
 local package_name = "kong-plugin-" .. plugin_name
-local package_version = "0.8.0"
+local package_version = "0.9.0"
 local rockspec_revision = "2"
 
 local github_account_name = "Kong"

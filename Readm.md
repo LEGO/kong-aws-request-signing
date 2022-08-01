@@ -1,6 +1,9 @@
 ## KONG-PLUGIN-AWS-SIGV4-WEBID-AUTH
 
-This plugin was made to allow the secure use of AWS Lambdas as upstreams in Kong using [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/). This way we reduce the cost and complexity by bypassing AWS API Gateway.
+### About
+
+This plugin was made to allow the secure use of AWS Lambdas as upstreams in Kong using [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/).
+It reduces cost and complexity by excluding AWS API Gateway.
 
 Some of the code was reused from [Kong Lambda Plugin](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda) specifically the [SIGV4 creation](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/v4.lua) code and some parts for [getting the temporary credentials from AWS STS](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/iam-sts-credentials.lua). There are some considerable differences that I will outline below:
 
@@ -9,7 +12,7 @@ Some of the code was reused from [Kong Lambda Plugin](https://github.com/Kong/ko
 3. This plugin has a low priority and is compatible with the rest of Kong plugins because as mentioned above, it only performs SIGV4 on the request and then appends the necessary headers to be authorized in AWS.
 
 
-Plugin configuration parameters:
+### Plugin configuration parameters:
 
 ```lua
 aws_assume_role_arn - ARN of the IAM role that the plugin will try to assume
@@ -22,7 +25,7 @@ type = "string"
 required = true
 
 
-aws_region - Region of the Lambda you are pointing to
+aws_region - Region of the Lambda you deployed in AWS.
 type = "string"
 required = true
 
@@ -33,19 +36,5 @@ required = true
 ```
 
 
-## License
-```
-Copyright 2022 The LEGO Group.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+### License 
+[Modified Apache 2.0 (Section 6)](https://github.com/LEGO/kong-plugin-aws-sigv4-webid-auth/blob/main/LICENSE)

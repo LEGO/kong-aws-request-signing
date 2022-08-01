@@ -153,8 +153,6 @@ local function prepare_awsv4_request(tbl)
     ["x-amz-date"] = req_date;
     host = host_header;
   }
-
-  kong.log.inspect(lowerHeaders)
   
   for k, v in pairs(req_headers) do
     k = k:lower() -- convert to lower case header name

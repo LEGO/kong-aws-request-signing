@@ -1,6 +1,13 @@
 local aws_v4 = require "kong.plugins.aws-sigv4-webid-auth.sigv4"
 local meta = require "kong.meta"
 local kong = kong
+local ngx = ngx
+local ngx_update_time = ngx.update_time
+local ngx_now = ngx.now
+local ngx_var = ngx.var
+local error = error
+local type = type
+local fmt = string.format
 
 local set_headers = kong.service.request.set_headers
 local get_raw_body = kong.request.get_raw_body
@@ -21,14 +28,6 @@ local function fetch_aws_credentials(sts_conf)
   return result, nil
 end
 
-local ngx_update_time = ngx.update_time
-local ngx_now = ngx.now
-local ngx_var = ngx.var
-local error = error
-local kong = kong
-local type = type
-local fmt = string.format
-
 local function get_now()
   ngx_update_time()
   return ngx_now() -- time is kept in seconds
@@ -36,27 +35,23 @@ end
 
 local function retrieve_token()
   local request_headers = kong.request.get_headers()
-  for _, v in ipairs({ "authorization" }) do
-    local token_header = request_headers[v]
-    if token_header then
-      if type(token_header) == "table" then
-        token_header = token_header[1]
-      end
-      local iterator, iter_err = re_gmatch(token_header, "\\s*[Bb]earer\\s+(.+)")
-      if not iterator then
-        kong.log.err(iter_err)
-        break
-      end
+  local token_header = request_headers["authorization"]
+  if token_header then
+    if type(token_header) == "table" then
+      token_header = token_header[1]
+    end
+    local iterator, iter_err = re_gmatch(token_header, "\\s*[Bb]earer\\s+(.+)")
+    if not iterator then
+      kong.log.err(iter_err)
+    end
 
-      local m, err = iterator()
-      if err then
-        kong.log.err(err)
-        break
-      end
+    local m, err = iterator()
+    if err then
+      kong.log.err(err)
+    end
 
-      if m and #m > 0 then
-        return m[1]
-      end
+    if m and #m > 0 then
+      return m[1]
     end
   end
 end
@@ -67,7 +62,7 @@ local function get_iam_credentials(sts_conf,refresh)
   local iam_role_cred_cache_key = fmt(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)
 
   if refresh then
-    kong.log.debug("invalidated cache!")
+    kong.log.debug("invalidated iam_role cache!")
     kong.cache:invalidate_local(iam_role_cred_cache_key)
   end
 
@@ -79,7 +74,7 @@ local function get_iam_credentials(sts_conf,refresh)
   )
 
   if err then
-    kong.log.inspect(err);
+    kong.log.err(err);
     return kong.response.exit(401, { message = "Unable to get the IAM credentials! Check token!" })
   end
 
@@ -99,10 +94,10 @@ local function get_iam_credentials(sts_conf,refresh)
       sts_conf
     )
     if err then
-      kong.log.inspect(err);
+      kong.log.err(err);
       return kong.response.exit(401, { message = "Unable to refresh expired IAM credentials! Check token!" })
     end
-    kong.log.debug("expiring key , invalidated cache and fetched fresh credentials!")
+    kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")
   end
 
   return iam_role_credentials
@@ -160,7 +155,7 @@ function AWSLambdaSTS:access(conf)
   set_raw_body(request.body)
 end
 
-AWSLambdaSTS.PRIORITY = -10000
+AWSLambdaSTS.PRIORITY = 110
 AWSLambdaSTS.VERSION = meta.version
 
 return AWSLambdaSTS

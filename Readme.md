@@ -75,7 +75,7 @@ type = "string"
 required = true
 
 
-aws_region - Region of the Lambda you deployed in AWS.
+aws_region - AWS region where your Lambda is deployed to
 type = "string"
 required = true
 

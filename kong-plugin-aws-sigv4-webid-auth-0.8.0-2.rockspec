@@ -18,7 +18,7 @@ source = {
 
 
 description = {
-  summary = "Allow the secure use of AWS Lambdas as upstreams in Kong using Lambda URLs. Reduces reduce the cost and complexity by bypassing AWS API Gateway.",
+  summary = "Allow the secure use of AWS Lambdas as upstreams in Kong using Lambda URLs. Reduces the cost and complexity of your solution by bypassing AWS API Gateway.",
   homepage = "https://"..github_account_name..".github.io/"..github_repo_name,
   license = "Section 6 Modified Apache 2.0 https://github.com/LEGO/kong-plugin-aws-sigv4-webid-auth/blob/main/LICENSE",
 }

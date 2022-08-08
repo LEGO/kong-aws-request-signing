@@ -1,11 +1,11 @@
 local plugin_name = "aws-sigv4-webid-auth"
 local package_name = "kong-plugin-" .. plugin_name
-local package_version = "0.8.0"
-local rockspec_revision = "2"
+local package_version = "1.0.0"
+local rockspec_revision = "3"
 
-local github_account_name = "Kong"
-local github_repo_name = "kong-plugin"
-local git_checkout = package_version == "dev" and "master" or package_version
+local github_account_name = "LEGO"
+local github_repo_name = "kong-plugin-aws-sigv4-webid-auth"
+local git_checkout = package_version == "dev" and "MAIN" or package_version
 
 
 package = package_name
@@ -18,11 +18,10 @@ source = {
 
 
 description = {
-  summary = "Kong is a scalable and customizable API Management Layer built on top of Nginx.",
+  summary = "Allow the secure use of AWS Lambdas as upstreams in Kong using Lambda URLs. Reduces the cost and complexity of your solution by bypassing AWS API Gateway.",
   homepage = "https://"..github_account_name..".github.io/"..github_repo_name,
-  license = "Apache 2.0",
+  license = "Section 6 Modified Apache 2.0 https://github.com/LEGO/kong-plugin-aws-sigv4-webid-auth/blob/main/LICENSE",
 }
-
 
 dependencies = {
 }
@@ -31,8 +30,9 @@ dependencies = {
 build = {
   type = "builtin",
   modules = {
-    -- TODO: add any additional code files added to the plugin
     ["kong.plugins."..plugin_name..".handler"] = "kong/plugins/"..plugin_name.."/handler.lua",
+    ["kong.plugins."..plugin_name..".sigv4"] = "kong/plugins/"..plugin_name.."/sigv4.lua",
+    ["kong.plugins."..plugin_name..".webidentity-sts-credentials"] = "kong/plugins/"..plugin_name.."/webidentity-sts-credentials.lua",
     ["kong.plugins."..plugin_name..".schema"] = "kong/plugins/"..plugin_name.."/schema.lua",
   }
 }

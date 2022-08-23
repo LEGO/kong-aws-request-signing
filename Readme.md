@@ -5,62 +5,6 @@
 This plugin was made to allow the secure use of AWS Lambdas as upstreams in Kong using [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/).
 It reduces cost and complexity by excluding AWS API Gateway. The required AWS setup to make the plugin work with your Lambda HTTPS endpoint will be described below.
 
-## AWS Setup required
-1. You have a [Lambda function](https://eu-west-1.console.aws.amazon.com/lambda/home?region=eu-west-1#) deployed with `Function URL` enabled and Auth type : `AWS_IAM`
-
-![image](https://user-images.githubusercontent.com/29011940/183050407-553a5ea9-f746-4baa-8b41-3a88b852ec4b.png)
-
-2. Your OpenID Connect provider is added to [AWS IAM](https://us-east-1.console.aws.amazon.com/iamv2/home?region=us-east-1#/identity_providers)
-3. You have a role with  `arn:aws:iam::aws:policy/AWSLambda_FullAccess` permision and the trust relationship below:
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "Federated": "${arn_of_the_open_id_connect_provider_step_1}"
-            },
-            "Action": "sts:AssumeRoleWithWebIdentity",
-            "Condition": {
-                "StringEquals": {
-                    "${the_open_id_connect_provider_step_1}:aud": "${audience_of_the_lambda_given_by_your_open_id_provider}"
-                }
-            }
-        }
-    ]
-}
-```
-
-So if your provider is `https://sts.windows.net/organization.onmicrosoft.com/` and your app identity is `app_identity_1`, the trust relationship above will look like:
-
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "Federated": "arn:aws:iam::300000000000:oidc-provider/sts.windows.net/organization.onmicrosoft.com/"
-            },
-            "Action": "sts:AssumeRoleWithWebIdentity",
-            "Condition": {
-                "StringEquals": {
-                    "sts.windows.net/organization.onmicrosoft.com/:aud": "app_identity_1"
-                }
-            }
-        }
-    ]
-}
-```
-
-## About the code and differences from [Kong Lambda Plugin](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda)
-Some of the code was reused from [Kong Lambda Plugin](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda) specifically the [SIGV4 creation](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/v4.lua) code and some parts for [getting the temporary credentials from AWS STS](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/iam-sts-credentials.lua). There are some considerable differences that I will outline below:
-
-1. Unlike Kong-Lambda This plugin does not perform the Lambda invocation. But only signs the request coming from the consumer which Kong then forwards to the upstream that it is configured in the service that the plugin is bound to.
-2. The plugin works only with temporary credentials that are fetched from https://sts.amazonaws.com using [AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html#API_AssumeRoleWithWebIdentity_RequestParameters), this requires some configuration in AWS.
-3. This plugin has a low priority and is compatible with the rest of Kong plugins because as mentioned above, it only performs SIGV4 on the request and then appends the necessary headers to be authorized in AWS.
-
 
 ### Plugin configuration parameters:
 
@@ -85,7 +29,87 @@ type = "string"
 required = true
 ```
 
+### AWS Setup required
+1. You have a [Lambda function](https://eu-west-1.console.aws.amazon.com/lambda/home?region=eu-west-1#) deployed with `Function URL` enabled and Auth type : `AWS_IAM`
 
+<details>
+<summary>Show image</summary>
+<br>
+
+![Lambda example](https://user-images.githubusercontent.com/29011940/183050407-553a5ea9-f746-4baa-8b41-3a88b852ec4b.png)
+</details>
+
+2. Your OpenID Connect provider is added to [AWS IAM](https://us-east-1.console.aws.amazon.com/iamv2/home?region=us-east-1#/identity_providers)
+3. You have a role with  `arn:aws:iam::aws:policy/AWSLambda_FullAccess` permision and the trust relationship below:
+   
+<details>
+<summary>Show JSON</summary>
+<br>
+
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "${arn_of_the_open_id_connect_provider_step_1}"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "${the_open_id_connect_provider_step_1}:aud": "${audience_of_the_lambda_given_by_your_open_id_provider}"
+                }
+            }
+        }
+    ]
+}
+```
+</details>
+
+So if your provider is `https://sts.windows.net/organization.onmicrosoft.com/` and your app identity is `app_identity_1`, the trust relationship above will look like:
+
+<details>
+<summary>Show JSON</summary>
+<br>
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::300000000000:oidc-provider/sts.windows.net/organization.onmicrosoft.com/"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "sts.windows.net/organization.onmicrosoft.com/:aud": "app_identity_1"
+                }
+            }
+        }
+    ]
+}
+```
+</details>
+
+## About the code and differences from [Kong Lambda Plugin](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda)
+Some of the code was reused from [Kong Lambda Plugin](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda) specifically the [SIGV4 creation](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/v4.lua) code and some parts for [getting the temporary credentials from AWS STS](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/iam-sts-credentials.lua). There are some considerable differences that will be outlined below:
+
+1. Unlike Kong-Lambda This plugin does not perform the Lambda invocation. But only signs the request coming from the consumer which Kong then forwards to the upstream that it is configured in the service that the plugin is bound to.
+2. The plugin works only with temporary credentials that are fetched from https://sts.amazonaws.com using [AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html#API_AssumeRoleWithWebIdentity_RequestParameters), this requires some configuration in AWS.
+3. This plugin has a low priority and is compatible with the rest of Kong plugins because as mentioned above, it only performs SIGV4 on the request and then appends the necessary headers to be authorized in AWS.
+
+
+### Open Source Attribution
+* [Kong](https://github.com/Kong/kong) : [Apache 2.0 License](https://github.com/Kong/kong/blob/master/LICENSE)
+* [lua-resty-string](https://github.com/openresty/lua-resty-string) : [BSD License](https://github.com/openresty/lua-resty-string#copyright-and-license)
+* [Penlight](https://github.com/lunarmodules/Penlight) : [MIT License](https://github.com/lunarmodules/Penlight/blob/master/LICENSE.md)
+* [lua-resty-openssl](https://github.com/fffonion/lua-resty-openssl) : [BSD 2-Clause "Simplified" License](https://github.com/fffonion/lua-resty-openssl/blob/master/LICENSE)
+* [lua-resty-http](https://github.com/ledgetech/lua-resty-http) : [BSD 2-Clause "Simplified" License ](https://github.com/ledgetech/lua-resty-http/blob/master/LICENSE)
+* [lua-cjson](https://github.com/mpx/lua-cjson) : [MIT License](https://github.com/mpx/lua-cjson/blob/master/LICENSE)
 
 ### License 
 [Modified Apache 2.0 (Section 6)](https://github.com/LEGO/kong-plugin-aws-sigv4-webid-auth/blob/main/LICENSE)

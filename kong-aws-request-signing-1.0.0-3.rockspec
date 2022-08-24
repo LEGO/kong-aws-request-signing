@@ -1,10 +1,10 @@
-local plugin_name = "aws-sigv4-webid-auth"
-local package_name = "kong-plugin-" .. plugin_name
+local plugin_name = "aws-request-signing"
+local package_name = "kong-" .. plugin_name
 local package_version = "1.0.0"
 local rockspec_revision = "3"
 
 local github_account_name = "LEGO"
-local github_repo_name = "kong-plugin-aws-sigv4-webid-auth"
+local github_repo_name = "kong-aws-request-signing"
 local git_checkout = package_version == "dev" and "MAIN" or package_version
 
 
@@ -20,7 +20,7 @@ source = {
 description = {
   summary = "Allow the secure use of AWS Lambdas as upstreams in Kong using Lambda URLs. Reduces the cost and complexity of your solution by bypassing AWS API Gateway.",
   homepage = "https://"..github_account_name..".github.io/"..github_repo_name,
-  license = "Section 6 Modified Apache 2.0 https://github.com/LEGO/kong-plugin-aws-sigv4-webid-auth/blob/main/LICENSE",
+  license = "Section 6 Modified Apache 2.0 https://github.com/LEGO/kong-aws-request-signing/blob/main/LICENSE",
 }
 
 dependencies = {

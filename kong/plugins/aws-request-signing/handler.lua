@@ -1,4 +1,4 @@
-local aws_v4 = require "kong.plugins.aws-sigv4-webid-auth.sigv4"
+local aws_v4 = require "kong.plugins.aws-request-signing.sigv4"
 local meta = require "kong.meta"
 local kong = kong
 local ngx = ngx
@@ -13,12 +13,12 @@ local set_headers = kong.service.request.set_headers
 local get_raw_body = kong.request.get_raw_body
 local set_raw_body = kong.service.request.set_raw_body
 
-local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-sigv4-webid-auth.iam_role_temp_creds.%s"
+local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-request-signing.iam_role_temp_creds.%s"
 local AWS_PORT = 443
 local re_gmatch = ngx.re.gmatch
 
 local function fetch_aws_credentials(sts_conf)
-  local sts = require('kong.plugins.aws-sigv4-webid-auth.webidentity-sts-credentials')
+  local sts = require('kong.plugins.aws-request-signing.webidentity-sts-credentials')
 
   local result, err = sts.fetch_assume_role_credentials(sts_conf.RoleArn, sts_conf.RoleSessionName, sts_conf.WebIdentityToken)
 

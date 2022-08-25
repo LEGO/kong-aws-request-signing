@@ -1,14 +1,13 @@
 ## KONG-AWS-REQUEST-SIGNING
-
 ### About
 
 This plugin will sign a request with AWS SIGV4 and temporary credentials from `sts.amazonaws.com` requested using an OAuth token.
 
-Enables a secure use of AWS Lambdas as upstreams in Kong using [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/).
-It reduces cost and complexity by excluding AWS API Gateway.
+It enables the secure use of AWS Lambdas as upstreams in Kong using [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/).
 
-The required AWS setup to make the plugin work with your Lambda HTTPS endpoint will be described below. 
+At the same time it drives down cost and complexity by excluding the AWS API Gateway and allowing to use AWS Lambdas directly.
 
+The required AWS setup to make the plugin work with your Lambda HTTPS endpoint is described below.
 
 ### Plugin configuration parameters:
 

@@ -1,10 +1,13 @@
-## KONG-PLUGIN-AWS-SIGV4-WEBID-AUTH
-
+## KONG-AWS-REQUEST-SIGNING
 ### About
 
-This plugin was made to allow the secure use of AWS Lambdas as upstreams in Kong using [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/).
-It reduces cost and complexity by excluding AWS API Gateway. The required AWS setup to make the plugin work with your Lambda HTTPS endpoint will be described below.
+This plugin will sign a request with AWS SIGV4 and temporary credentials from `sts.amazonaws.com` requested using an OAuth token.
 
+It enables the secure use of AWS Lambdas as upstreams in Kong using [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/).
+
+At the same time it drives down cost and complexity by excluding the AWS API Gateway and allowing to use AWS Lambdas directly.
+
+The required AWS setup to make the plugin work with your Lambda HTTPS endpoint is described below.
 
 ### Plugin configuration parameters:
 
@@ -95,11 +98,11 @@ So if your provider is `https://sts.windows.net/organization.onmicrosoft.com/` a
 ```
 </details>
 
-## About the code and differences from [Kong Lambda Plugin](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda)
+### About the code and differences from [Kong Lambda Plugin](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda)
 Some of the code was reused from [Kong Lambda Plugin](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda) specifically the [SIGV4 creation](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/v4.lua) code and some parts for [getting the temporary credentials from AWS STS](https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/iam-sts-credentials.lua). There are some considerable differences that will be outlined below:
 
 1. Unlike Kong-Lambda This plugin does not perform the Lambda invocation. But only signs the request coming from the consumer which Kong then forwards to the upstream that it is configured in the service that the plugin is bound to.
-2. The plugin works only with temporary credentials that are fetched from https://sts.amazonaws.com using [AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html#API_AssumeRoleWithWebIdentity_RequestParameters), this requires some configuration in AWS.
+2. The plugin works only with temporary credentials that are fetched from `sts.amazonaws.com` using [AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html#API_AssumeRoleWithWebIdentity_RequestParameters), this requires some configuration in AWS which can be found above.
 3. This plugin has a low priority and is compatible with the rest of Kong plugins because as mentioned above, it only performs SIGV4 on the request and then appends the necessary headers to be authorized in AWS.
 
 
@@ -112,4 +115,4 @@ Some of the code was reused from [Kong Lambda Plugin](https://github.com/Kong/ko
 * [lua-cjson](https://github.com/mpx/lua-cjson) : [MIT License](https://github.com/mpx/lua-cjson/blob/master/LICENSE)
 
 ### License 
-[Modified Apache 2.0 (Section 6)](https://github.com/LEGO/kong-plugin-aws-sigv4-webid-auth/blob/main/LICENSE)
+[Modified Apache 2.0 (Section 6)](https://github.com/LEGO/kong-aws-request-signing/blob/main/LICENSE)

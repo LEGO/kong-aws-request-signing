@@ -75,7 +75,7 @@ kong reload
 export kong_proxf_url=http://localhost:8000
 export kong_admin_url=http://localhost:8001
 export service_name=echo 
-export plugin_name=aws-sigv4-webid-auth
+export plugin_name=aws-request-signing
 export lambda_url=http://example.com
 ```
 

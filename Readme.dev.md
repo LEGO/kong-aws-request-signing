@@ -16,42 +16,6 @@ Have a look at the table below:
 
 Based on the results above, we assume that this plugin and Kong is more reliable than AWS API Gateway, at least in the case when a lot uf users have to be served.
 
-#### To perform testing on an EC2 instance:
-
-* Configure network
-```sh
-sudo sysctl -w net.ipv4.ip_local_port_range="1024 65535" && sudo sysctl -w net.ipv4.tcp_tw_reuse=1 && sudo sysctl -w net.ipv4.tcp_timestamps=1 && ulimit -n 250000
-```
-
-* Run `test.js`
-```sh
-k6 run test.js
-```
-
-* After testing, results will show up:
-
-```sh
-running (2m15.2s), 0000/2200 VUs, 1374652 complete and 0 interrupted iterations
-default ✓ [======================================] 0000/2200 VUs  2m15s
-
-     data_received..................: 4.3 GB  32 MB/s
-     data_sent......................: 231 MB  1.7 MB/s
-     http_req_blocked...............: avg=6.33µs   min=128ns    med=214ns    max=57.8ms   p(90)=302ns    p(95)=323ns
-     http_req_connecting............: avg=1.02µs   min=0s       med=0s       max=34.6ms   p(90)=0s       p(95)=0s
-   ✓ http_req_duration..............: avg=58.01ms  min=3.31ms   med=20.62ms  max=2.31s    p(90)=133.11ms p(95)=249.25ms
-       { expected_response:true }...: avg=65.16ms  min=6.72ms   med=22.63ms  max=2.31s    p(90)=152.74ms p(95)=276.33ms
-     http_req_failed................: 24.53%  ✓ 337255       ✗ 1037397
-     http_req_receiving.............: avg=43.69µs  min=11.77µs  med=29.02µs  max=162.59ms p(90)=55.33µs  p(95)=73.2µs
-     http_req_sending...............: avg=37.48µs  min=19.71µs  med=31.87µs  max=25.49ms  p(90)=44.67µs  p(95)=51.19µs
-     http_req_tls_handshaking.......: avg=4.44µs   min=0s       med=0s       max=37.29ms  p(90)=0s       p(95)=0s
-     http_req_waiting...............: avg=57.93ms  min=3.25ms   med=20.54ms  max=2.31s    p(90)=133ms    p(95)=249.18ms
-     http_reqs......................: 1374652 10171.278848/s
-     iteration_duration.............: avg=208.23ms min=153.43ms med=170.83ms max=2.46s    p(90)=283.37ms p(95)=399.5ms
-     iterations.....................: 1374652 10171.278848/s
-     vus............................: 112     min=112        max=2200
-     vus_max........................: 2200    min=2200       max=2200
-```
-
 ### Plugin Development
 Below you will find some actions you might want to perform during plugin development
 

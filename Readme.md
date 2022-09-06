@@ -1,6 +1,6 @@
 ## KONG-AWS-REQUEST-SIGNING
 
-![build status](https://github.com/LEGO/kong-aws-request-signing/workflows/Build/badge.svg)
+[![Build](https://github.com/LEGO/kong-aws-request-signing/actions/workflows/build.yml/badge.svg)](https://github.com/LEGO/kong-aws-request-signing/actions/workflows/build.yml)
 
 ### About
 

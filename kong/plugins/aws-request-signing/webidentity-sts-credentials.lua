@@ -1,3 +1,6 @@
+-- Requests credentials from AWS STS
+-- Modified version of https://github.com/Kong/kong/blob/master/kong/plugins/aws-lambda/iam-sts-credentials.lua
+
 -- BSD 2-Clause License
 local http  = require "resty.http"
 -- MIT License
@@ -8,10 +11,7 @@ local kong = kong
 local DEFAULT_SESSION_DURATION_SECONDS = 3600
 local DEFAULT_HTTP_CLINET_TIMEOUT = 60000
 
-local function get_regional_sts_endpoint()
-    return 'https://sts.amazonaws.com'
-end
-
+local sts_host = 'https://sts.amazonaws.com'
 
 local function fetch_assume_role_credentials(assume_role_arn,
                                              role_session_name,
@@ -21,8 +21,6 @@ local function fetch_assume_role_credentials(assume_role_arn,
   end
 
   kong.log.debug('Trying to assume role [', assume_role_arn, ']')
-
-  local sts_host = get_regional_sts_endpoint()
 
   -- build the url and signature to assume role
   local assume_role_request_headers = {

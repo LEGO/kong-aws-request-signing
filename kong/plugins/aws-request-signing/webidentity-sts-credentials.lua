@@ -2,7 +2,9 @@
 local http  = require "resty.http"
 -- MIT License
 local json  = require "cjson"
+---@diagnostic disable-next-line: undefined-global
 local ngx_now = ngx.now
+---@diagnostic disable-next-line: undefined-global
 local kong = kong
 
 local DEFAULT_SESSION_DURATION_SECONDS = 3600
@@ -61,7 +63,9 @@ local function fetch_assume_role_credentials(assume_role_arn,
     return nil, err_s
   end
 
-  local credentials = json.decode(res.body).AssumeRoleWithWebIdentityResponse.AssumeRoleWithWebIdentityResult.Credentials
+  local credentials =
+    json.decode(res.body).AssumeRoleWithWebIdentityResponse.AssumeRoleWithWebIdentityResult.Credentials
+
   local result = {
     access_key    = credentials.AccessKeyId,
     secret_key    = credentials.SecretAccessKey,

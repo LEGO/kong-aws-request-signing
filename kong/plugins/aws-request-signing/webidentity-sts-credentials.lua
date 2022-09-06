@@ -2,9 +2,8 @@
 local http  = require "resty.http"
 -- MIT License
 local json  = require "cjson"
----@diagnostic disable-next-line: undefined-global
+
 local ngx_now = ngx.now
----@diagnostic disable-next-line: undefined-global
 local kong = kong
 
 local DEFAULT_SESSION_DURATION_SECONDS = 3600

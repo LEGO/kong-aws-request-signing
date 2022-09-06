@@ -1,8 +1,7 @@
 local aws_v4 = require "kong.plugins.aws-request-signing.sigv4"
 local meta = require "kong.meta"
----@diagnostic disable-next-line: undefined-global
+
 local kong = kong
----@diagnostic disable-next-line: undefined-global
 local ngx = ngx
 local ngx_update_time = ngx.update_time
 local ngx_now = ngx.now

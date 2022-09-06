@@ -11,7 +11,6 @@ local openssl_hmac = require "resty.openssl.hmac"
 
 local ALGORITHM = "AWS4-HMAC-SHA256"
 
----@diagnostic disable-next-line: undefined-global
 local ngx = ngx
 
 local function notEmpty(s)

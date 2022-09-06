@@ -11,12 +11,10 @@ local openssl_hmac = require "resty.openssl.hmac"
 
 local ALGORITHM = "AWS4-HMAC-SHA256"
 
-local function notEmpty(s)
-  return not (s == nil) and not (s == '')
-end
+local ngx = ngx
 
-local function isEmpty(s)
-  return s == nil or s == ''
+local function notEmpty(s)
+  return s ~= nil and s ~= ''
 end
 
 local CHAR_TO_HEX = {};
@@ -64,11 +62,11 @@ local function canonicalise_path(path)
   -- If there was a slash on the end, keep it there.
   if path:sub(-1, -1) == "/" then
     len = len + 1
-    segments[len] = ""
+    segments[len] = nil
   end
   segments[0] = ""
-  segments = table.concat(segments, "/", 0, len)
-  return segments
+  local segmentsString = table.concat(segments, "/", 0, len)
+  return segmentsString
 end
 
 local function canonicalise_query_string(query)
@@ -98,20 +96,20 @@ local function prepare_awsv4_request(tbl)
   local path = tbl.path
   local host = tbl.host
 
-  
+
   if path and not canonicalURI then
     canonicalURI = canonicalise_path(path)
   elseif canonicalURI == nil or canonicalURI == "" then
     canonicalURI = "/"
   end
 
-  
+
   local canonical_querystring = tbl.canonical_querystring
   local query = tbl.query
   if query and not canonical_querystring then
     canonical_querystring = canonicalise_query_string(query)
   end
-  
+
 
   local req_headers = tbl.headers or {}
   local req_payload = tbl.body
@@ -153,7 +151,7 @@ local function prepare_awsv4_request(tbl)
     ["x-amz-date"] = req_date;
     host = host_header;
   }
-  
+
   for k, v in pairs(req_headers) do
     k = k:lower() -- convert to lower case header name
     lowerHeaders[k] = v

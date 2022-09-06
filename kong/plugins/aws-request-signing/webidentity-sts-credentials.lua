@@ -5,6 +5,7 @@
 local http  = require "resty.http"
 -- MIT License
 local json  = require "cjson"
+
 local ngx_now = ngx.now
 local kong = kong
 
@@ -59,7 +60,9 @@ local function fetch_assume_role_credentials(assume_role_arn,
     return nil, err_s
   end
 
-  local credentials = json.decode(res.body).AssumeRoleWithWebIdentityResponse.AssumeRoleWithWebIdentityResult.Credentials
+  local credentials =
+    json.decode(res.body).AssumeRoleWithWebIdentityResponse.AssumeRoleWithWebIdentityResult.Credentials
+
   local result = {
     access_key    = credentials.AccessKeyId,
     secret_key    = credentials.SecretAccessKey,

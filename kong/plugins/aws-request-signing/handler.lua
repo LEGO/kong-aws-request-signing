@@ -1,5 +1,6 @@
 local aws_v4 = require "kong.plugins.aws-request-signing.sigv4"
 local meta = require "kong.meta"
+
 local kong = kong
 local ngx = ngx
 local ngx_update_time = ngx.update_time
@@ -20,7 +21,8 @@ local re_gmatch = ngx.re.gmatch
 local function fetch_aws_credentials(sts_conf)
   local sts = require('kong.plugins.aws-request-signing.webidentity-sts-credentials')
 
-  local result, err = sts.fetch_assume_role_credentials(sts_conf.RoleArn, sts_conf.RoleSessionName, sts_conf.WebIdentityToken)
+  local result, err =
+    sts.fetch_assume_role_credentials(sts_conf.RoleArn, sts_conf.RoleSessionName, sts_conf.WebIdentityToken)
 
   if err then
     return nil, err
@@ -103,7 +105,7 @@ local function get_iam_credentials(sts_conf,refresh)
   return iam_role_credentials
 end
 
-function AWSLambdaSTS:access(conf)
+function AWSLambdaSTS.access(conf)
   local service = kong.router.get_service()
 
   if service == nil then

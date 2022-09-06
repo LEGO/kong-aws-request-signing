@@ -1,4 +1,7 @@
 ## KONG-AWS-REQUEST-SIGNING
+
+![build status](https://github.com/LEGO/kong-aws-request-signing/workflows/Build/badge.svg)
+
 ### About
 
 This plugin will sign a request with AWS SIGV4 and temporary credentials from `sts.amazonaws.com` requested using an OAuth token.

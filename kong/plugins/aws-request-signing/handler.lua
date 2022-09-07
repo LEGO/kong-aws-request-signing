@@ -129,7 +129,6 @@ function AWSLambdaSTS.access(conf)
   upstream_headers.authorization = nil
   upstream_headers.host = host
 
-
   local opts = {
     region = region,
     service = conf.aws_service,

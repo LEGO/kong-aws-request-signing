@@ -36,6 +36,7 @@ Once you have read them, and you feel that you are ready to submit your Pull Req
 to verify a few things:
 
 - Your commit message is clear. I.E. no branches named update, fix, docs.
+- You have signed your commits.
 - Rebase your work on top of the base branch (seek help online on how to use
   `git rebase`. This is important to ensure your commit history is clean and
    linear)

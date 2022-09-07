@@ -1,4 +1,4 @@
-## Contributing Guideline
+# Contributing Guideline
 
 🎉 First off, thanks for taking the time to contribute! 🎉
 
@@ -8,7 +8,7 @@ If you are interested in contributing to the code you should begin by reading th
 
 Below you can find some guidelines to help you contribute.
 
-### Where to report bugs?
+## Where to report bugs?
 
 Feel free to submit an issue on the GitHub repository, we would be grateful to hear about it! Please make sure that you include:
 
@@ -18,13 +18,13 @@ Feel free to submit an issue on the GitHub repository, we would be grateful to h
 4. Your Plugin configuration, or the parts that are relevant to your issue
 5. If you wish, you are more than welcome to open a PR to fix the issue! See the open a PR section for more information on how to best do so.
 
-### Where to submit improvement suggestions?
+## Where to submit improvement suggestions?
 
 You can submit an issue for improvement suggestions. Try adding all the details that seem relevant to you.
 
-You are also welcome to open a PR that implements your suggestions. 
+You are also welcome to open a PR that implements your suggestions.
 
-### Open a Pull Request
+## Open a Pull Request
 
 Feel free to contribute fixes or minor features, we are happy to receive Pull
 Requests!
@@ -52,7 +52,27 @@ to it if necessary.
 If your Pull Request was accepted and fixes a bug, adds functionality, or improves documentation, congratulations!
 You are now an official contributor!
 
-#### Git branches
+### luacheck Linting
+
+If your pull request include any changes to the lua code, it will have to pass our linting rules before the PR can be reviewed.  
+You can verify these in advance, by running luacheck on the [kong folder](kong/).  
+
+```bash
+luacheck kong
+```
+
+Once you have verified that there are 0 errors and 0 warnings, you can safely submit your PR.
+
+#### installing luacheck
+
+If you don't already have luacheck setup is fortunately quite easy.  
+Simply install it through luarocks like so:
+
+```bash
+luarocks install luacheck
+```
+
+### Git branches
 
 Please follow the following naming scheme when creating a branch:
 
@@ -65,6 +85,4 @@ Please follow the following naming scheme when creating a branch:
   
 If you don't have write access to the repository, feel free to fork.
 
-<br>
-
-Partially inspired by [official Kong Contribution Guide](https://github.com/Kong/kong/edit/master/CONTRIBUTING.md)
+> Partially inspired by [official Kong Contribution Guide](https://github.com/Kong/kong/edit/master/CONTRIBUTING.md)

@@ -35,7 +35,7 @@ local function get_now()
   return ngx_now() -- time is kept in seconds
 end
 
-local function retrieve_token()
+function retrieve_token()
   local request_headers = kong.request.get_headers()
   local token_header = request_headers["authorization"]
   if token_header then

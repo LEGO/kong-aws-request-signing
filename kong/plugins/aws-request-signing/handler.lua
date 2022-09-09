@@ -18,6 +18,8 @@ local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-request-signing.iam_role_t
 local AWS_PORT = 443
 local re_gmatch = ngx.re.gmatch
 
+local AWSLambdaSTS = {}
+
 local function fetch_aws_credentials(sts_conf)
   local sts = require('kong.plugins.aws-request-signing.webidentity-sts-credentials')
 
@@ -35,7 +37,7 @@ local function get_now()
   return ngx_now() -- time is kept in seconds
 end
 
-function retrieve_token()
+local function retrieve_token()
   local request_headers = kong.request.get_headers()
   local token_header = request_headers["authorization"]
   if token_header then
@@ -58,7 +60,10 @@ function retrieve_token()
   end
 end
 
-local AWSLambdaSTS = {}
+if _TEST then
+  AWSLambdaSTS._retrieve_token = retrieve_token
+end
+
 
 local function get_iam_credentials(sts_conf,refresh)
   local iam_role_cred_cache_key = fmt(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)

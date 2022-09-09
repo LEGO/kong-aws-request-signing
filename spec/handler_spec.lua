@@ -21,26 +21,27 @@ local kong = {
 }
 
 _G.kong = kong
-local pluginHandler = require("kong.plugins.aws-request-signing.handler")
+_G._TEST = true
+local handler = require("kong.plugins.aws-request-signing.handler")
 
 describe("retrieve_token_should", function()
   it("return_auth_token_from_correct_header", function()
-    local returnedToken = retrieve_token()
+    local returnedToken = handler._retrieve_token()
     assert.equal(authGuid, returnedToken)
   end)
   it("return_auth_token_from_correct_header_with_capital_B", function()
     mock_request_headers["authorization"] = "Bearer " .. authGuid
-    local returnedToken = retrieve_token()
+    local returnedToken = handler._retrieve_token()
     assert.equal(authGuid, returnedToken)
   end)
   it("return_nil_if_header_doesnt_contain_bearer", function()
     mock_request_headers["authorization"] = "Basic whatever"
-    local returnedToken = retrieve_token()
+    local returnedToken = handler._retrieve_token()
     assert.falsy(returnedToken)
   end)
   it("return_nil_if_header_doesnt_exist", function()
     mock_request_headers["authorization"] = nil
-    local returnedToken = retrieve_token()
+    local returnedToken = handler._retrieve_token()
     assert.falsy(returnedToken)
   end)
 end)

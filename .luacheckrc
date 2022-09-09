@@ -6,5 +6,6 @@
 globals = {
     "kong",
     "ngx.IS_CLI",
-    "ngx"
+    "ngx",
+    "_TEST"
 }

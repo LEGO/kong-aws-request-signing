@@ -1,12 +1,14 @@
 name: Build
 
-on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'kong/**/*.lua'
-      - 'spec/*.lua'
+# on:
+#   pull_request:
+#     branches:
+#       - main
+#     paths:
+#       - 'kong/**/*.lua'
+#       - 'spec/*.lua'
+
+on: push
 
 jobs:
   linting:

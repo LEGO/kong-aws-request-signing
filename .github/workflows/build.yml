@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'kong/**/*.lua'
+      - 'spec/*.lua'
 
 jobs:
   linting:
@@ -18,3 +19,20 @@ jobs:
         uses: lunarmodules/luacheck@v0
         with:
           args: kong
+  unit-tests:
+    name: Running unit tests.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        kong_version:
+        - "2.7.x"
+        - "2.8.x"
+        - "nightly"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: Kong/kong-pongo-action@v1
+      with:
+        kong_version: ${{ matrix.kong_version }}
+      - run: pongo run

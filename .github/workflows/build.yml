@@ -30,7 +30,7 @@ jobs:
         kong_version:
         - "2.7.x"
         - "2.8.x"
-        - "3.x"
+        - "nightly"
     steps:
       - name: Checkout
         uses: actions/checkout@v3

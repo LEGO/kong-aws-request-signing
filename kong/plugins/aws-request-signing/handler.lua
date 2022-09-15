@@ -108,6 +108,8 @@ end
 function AWSLambdaSTS.access(self, conf)
   local service = kong.router.get_service()
 
+  kong.log.debug(self);
+
   if service == nil then
     return kong.response.exit(500, { message = "Unable to retrive bound service!" })
   end

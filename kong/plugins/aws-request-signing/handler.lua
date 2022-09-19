@@ -110,6 +110,10 @@ local function get_iam_credentials(sts_conf,refresh)
   return iam_role_credentials
 end
 
+if _TEST then
+  AWSLambdaSTS._get_iam_credentials = get_iam_credentials
+end
+
 function AWSLambdaSTS.access(conf)
   local service = kong.router.get_service()
 

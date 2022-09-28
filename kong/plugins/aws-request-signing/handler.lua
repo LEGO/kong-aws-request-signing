@@ -101,7 +101,7 @@ if _TEST then
   AWSLambdaSTS._get_iam_credentials = get_iam_credentials
 end
 
-function AWSLambdaSTS.access(_self, conf)
+function AWSLambdaSTS:access(conf)
   local service = kong.router.get_service()
 
   if service == nil then

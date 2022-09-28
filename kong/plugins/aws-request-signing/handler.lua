@@ -12,7 +12,6 @@ local set_raw_body = kong.service.request.set_raw_body
 
 local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-request-signing.iam_role_temp_creds.%s"
 local AWS_PORT = 443
-local re_gmatch = ngx.re.gmatch
 
 local AWSLambdaSTS = {}
 
@@ -40,18 +39,12 @@ local function retrieve_token()
     if type(token_header) == "table" then
       token_header = token_header[1]
     end
-    local iterator, iter_err = re_gmatch(token_header, "\\s*[Bb]earer\\s+(.+)")
-    if not iterator then
-      kong.log.err(iter_err)
-    end
 
-    local m, err = iterator()
+    local captures, err = ngx.re.match(token_header, [[ \s* Bearer \s+ (.+) ]], "joxi", nil)
     if err then
       kong.log.err(err)
-    end
-
-    if m and #m > 0 then
-      return m[1]
+    elseif captures then
+      return captures[1]
     end
   end
 end

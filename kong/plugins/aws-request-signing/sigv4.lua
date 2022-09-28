@@ -19,9 +19,7 @@ end
 
 local CHAR_TO_HEX = {};
 for i = 0, 255 do
-  local char = string.char(i)
-  local hex = string.format("%02x", i)
-  CHAR_TO_HEX[char] = hex
+  CHAR_TO_HEX[string.char(i)] = string.format("%02x", i)
 end
 
 local function hmac(secret, data)
@@ -35,7 +33,7 @@ local function hash(str)
 end
 
 local function hex_encode(str) -- From prosody's util.hex
-  return (str:gsub(".", CHAR_TO_HEX))
+  return str:gsub(".", CHAR_TO_HEX)
 end
 
 local function percent_encode(char)
@@ -65,8 +63,7 @@ local function canonicalise_path(path)
     segments[len] = nil
   end
   segments[0] = ""
-  local segmentsString = table.concat(segments, "/", 0, len)
-  return segmentsString
+  return table.concat(segments, "/", 0, len)
 end
 
 local function canonicalise_query_string(query)
@@ -84,8 +81,7 @@ local function derive_signing_key(kSecret, date, region, service)
   local kDate = hmac("AWS4" .. kSecret, date)
   local kRegion = hmac(kDate, region)
   local kService = hmac(kRegion, service)
-  local kSigning = hmac(kService, "aws4_request")
-  return kSigning
+  return hmac(kService, "aws4_request")
 end
 
 local function prepare_awsv4_request(tbl)
@@ -220,7 +216,7 @@ local function prepare_awsv4_request(tbl)
   local scheme = tls and "https" or "http"
   local url = scheme .. "://" .. host_header .. target
 
-  local returned = {
+  return {
     url = url,
     host = host,
     port = port,
@@ -230,8 +226,6 @@ local function prepare_awsv4_request(tbl)
     headers = lowerHeaders,
     body = req_payload,
   }
-
-  return returned
 end
 
 return prepare_awsv4_request

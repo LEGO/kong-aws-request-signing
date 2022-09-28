@@ -64,8 +64,6 @@ if _TEST then
   AWSLambdaSTS._retrieve_token = retrieve_token
 end
 
-hest
-
 local function get_iam_credentials(sts_conf,refresh)
   local iam_role_cred_cache_key = fmt(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)
 

@@ -1,4 +1,4 @@
-local aws_v4 = require "kong.plugins.aws-request-signing.sigv4"
+local sigv4 = require "kong.plugins.aws-request-signing.sigv4"
 local meta = require "kong.meta"
 
 local kong = kong
@@ -141,7 +141,7 @@ function AWSLambdaSTS.access(_self, conf)
     secret_key = iam_role_credentials.secret_key,
   }
 
-  local request, err = aws_v4(opts)
+  local request, err = sigv4(opts)
   if err then
     return error(err)
   end

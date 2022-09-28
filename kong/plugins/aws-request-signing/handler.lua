@@ -64,7 +64,6 @@ if _TEST then
   AWSLambdaSTS._retrieve_token = retrieve_token
 end
 
-
 local function get_iam_credentials(sts_conf,refresh)
   local iam_role_cred_cache_key = fmt(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)
 
@@ -106,7 +105,6 @@ local function get_iam_credentials(sts_conf,refresh)
     end
     kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")
   end
-
   return iam_role_credentials
 end
 
@@ -114,10 +112,8 @@ if _TEST then
   AWSLambdaSTS._get_iam_credentials = get_iam_credentials
 end
 
-function AWSLambdaSTS.access(self, conf)
+function AWSLambdaSTS.access(_self, conf)
   local service = kong.router.get_service()
-
-  kong.log.debug(self);
 
   if service == nil then
     return kong.response.exit(500, { message = "Unable to retrive bound service!" })

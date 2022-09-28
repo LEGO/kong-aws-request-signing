@@ -23,9 +23,12 @@ local fetch_aws_credentials = spy.new(function() end)
 -- Mock of ngx
 local ngx = {
   now = spy.new(function() return 5 end),
-  var = realNgx.var,
+  var = {
+    upstream_uri = "https://upstream.uri.com"
+  },
   re = realNgx.re,
-  update_time = realNgx.update_time
+  update_time = realNgx.update_time,
+  unescape_uri = realNgx.unescape_uri
 }
 
 -- Mock of kong
@@ -33,7 +36,9 @@ local kong = {
   request = {
     get_headers = spy.new(function() return mock_request_headers end),
     set_headers = spy.new(function() end),
-    get_raw_body = spy.new(function() end)
+    get_raw_body = spy.new(function() end),
+    get_method = spy.new(function() return "GET" end),
+    get_raw_query = spy.new(function() return "HTTP GET" end)
   },
   service = {
     request = {
@@ -99,7 +104,7 @@ describe("get_iam_credentials_should", function()
   end)
 
   before_each(function()
-    kong.cache.invalidate_local = spy.new(function() end) -- reset spy counter
+    kong.cache.invalidate_local:clear() --reset counter
   end)
 
   it("return_from_cache", function()
@@ -123,4 +128,3 @@ describe("get_iam_credentials_should", function()
     assert.spy(kong.cache.invalidate_local).was.called(0)
   end)
 end)
-

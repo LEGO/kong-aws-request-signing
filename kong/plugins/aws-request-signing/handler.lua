@@ -3,12 +3,8 @@ local meta = require "kong.meta"
 
 local kong = kong
 local ngx = ngx
-local ngx_update_time = ngx.update_time
-local ngx_now = ngx.now
-local ngx_var = ngx.var
 local error = error
 local type = type
-local fmt = string.format
 
 local set_headers = kong.service.request.set_headers
 local get_raw_body = kong.request.get_raw_body
@@ -33,8 +29,8 @@ local function fetch_aws_credentials(sts_conf)
 end
 
 local function get_now()
-  ngx_update_time()
-  return ngx_now() -- time is kept in seconds
+  ngx.update_time()
+  return ngx.now() -- time is kept in seconds
 end
 
 local function retrieve_token()
@@ -65,7 +61,7 @@ if _TEST then
 end
 
 local function get_iam_credentials(sts_conf,refresh)
-  local iam_role_cred_cache_key = fmt(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)
+  local iam_role_cred_cache_key = string.format(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)
 
   if refresh then
     kong.log.debug("invalidated iam_role cache!")
@@ -143,7 +139,7 @@ function AWSLambdaSTS.access(_self, conf)
     method = kong.request.get_method(),
     headers = upstream_headers,
     body = get_raw_body(),
-    path = ngx_var.upstream_uri,
+    path = ngx.var.upstream_uri,
     host = host,
     port = AWS_PORT,
     query = kong.request.get_raw_query(),

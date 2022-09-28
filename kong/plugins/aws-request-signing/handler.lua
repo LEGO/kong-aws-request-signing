@@ -117,9 +117,10 @@ function AWSLambdaSTS.access(_self, conf)
   }
 
   local upstream_headers = {}
-
-  local iam_role_credentials = get_iam_credentials(sts_conf,upstream_headers["x-sts-refresh"])
-
+  -- FIXME: It seems that upstream_headers["x-sts-refresh"] always is nil at this point.
+  local iam_role_credentials = get_iam_credentials(sts_conf, upstream_headers["x-sts-refresh"])
+  -- FIXME: Suggest making the initialization of upstream_headers into an array initializer
+  -- instead of repeated assignments for consistency.
   upstream_headers["x-authorization"] = kong.request.get_headers().authorization
   upstream_headers["x-amz-security-token"] = iam_role_credentials.session_token
   upstream_headers.authorization = nil

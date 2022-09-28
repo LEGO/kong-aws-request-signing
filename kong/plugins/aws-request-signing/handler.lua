@@ -18,6 +18,8 @@ local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-request-signing.iam_role_t
 local AWS_PORT = 443
 local re_gmatch = ngx.re.gmatch
 
+local AWSLambdaSTS = {}
+
 local function fetch_aws_credentials(sts_conf)
   local sts = require('kong.plugins.aws-request-signing.webidentity-sts-credentials')
 
@@ -58,7 +60,9 @@ local function retrieve_token()
   end
 end
 
-local AWSLambdaSTS = {}
+if _TEST then
+  AWSLambdaSTS._retrieve_token = retrieve_token
+end
 
 local function get_iam_credentials(sts_conf,refresh)
   local iam_role_cred_cache_key = fmt(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)
@@ -101,14 +105,15 @@ local function get_iam_credentials(sts_conf,refresh)
     end
     kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")
   end
-
   return iam_role_credentials
 end
 
-function AWSLambdaSTS.access(self, conf)
-  local service = kong.router.get_service()
+if _TEST then
+  AWSLambdaSTS._get_iam_credentials = get_iam_credentials
+end
 
-  kong.log.debug(self);
+function AWSLambdaSTS.access(_self, conf)
+  local service = kong.router.get_service()
 
   if service == nil then
     return kong.response.exit(500, { message = "Unable to retrive bound service!" })

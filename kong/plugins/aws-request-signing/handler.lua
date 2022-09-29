@@ -32,9 +32,7 @@ local function get_now()
   return ngx.now() -- time is kept in seconds
 end
 
-local function retrieve_token()
-  local request_headers = kong.request.get_headers()
-  local token_header = request_headers["authorization"]
+local function retrieve_token(token_header)
   if token_header then
     if type(token_header) == "table" then
       token_header = token_header[1]
@@ -53,7 +51,7 @@ if _TEST then
   AWSLambdaSTS._retrieve_token = retrieve_token
 end
 
-local function get_iam_credentials(sts_conf,refresh)
+local function get_iam_credentials(sts_conf, refresh)
   local iam_role_cred_cache_key = string.format(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)
 
   if refresh then
@@ -102,34 +100,31 @@ function AWSLambdaSTS:access(conf)
     kong.log.err("Unable to retrieve bound service!")
     return kong.response.exit(500, { message = "Internal server error" })
   end
-  local host = service.host
 
-  local region = conf.aws_region
+  local request_headers = kong.request.get_headers()
+
   local sts_conf = {
     RoleArn = conf.aws_assume_role_arn,
-    WebIdentityToken = retrieve_token(),
+    WebIdentityToken = retrieve_token(request_headers["authorization"]),
     RoleSessionName = conf.aws_assume_role_name,
   }
 
-  local upstream_headers = {}
-  -- FIXME: It seems that upstream_headers["x-sts-refresh"] always is nil at this point.
-  local iam_role_credentials = get_iam_credentials(sts_conf, upstream_headers["x-sts-refresh"])
-  -- FIXME: Suggest making the initialization of upstream_headers into an array initializer
-  -- instead of repeated assignments for consistency.
-  upstream_headers["x-authorization"] = kong.request.get_headers().authorization
-  upstream_headers["x-amz-security-token"] = iam_role_credentials.session_token
-  upstream_headers.authorization = nil
-  upstream_headers.host = host
+  local iam_role_credentials = get_iam_credentials(sts_conf, request_headers["x-sts-refresh"])
 
+  upstream_headers = {
+    ["x-authorization"] = kong.request.get_headers().authorization,
+    ["x-amz-security-token"] = iam_role_credentials.session_token,
+    host = service.host,
+  }
 
   local opts = {
-    region = region,
+    region = conf.aws_region,
     service = conf.aws_service,
     method = kong.request.get_method(),
     headers = upstream_headers,
     body = get_raw_body(),
     path = ngx.var.upstream_uri,
-    host = host,
+    host = service.host,
     port = AWS_PORT,
     query = kong.request.get_raw_query(),
     access_key = iam_role_credentials.access_key,

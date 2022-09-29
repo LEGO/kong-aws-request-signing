@@ -136,8 +136,8 @@ local function prepare_awsv4_request(tbl)
   end
 
   local lowerHeaders = {
-    ["x-amz-date"] = req_date;
-    host = host_header;
+    ["x-amz-date"] = req_date,
+    host = host_header
   }
 
   for k, v in pairs(req_headers) do

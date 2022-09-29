@@ -69,11 +69,11 @@ local function get_iam_credentials(sts_conf,refresh)
   )
 
   if err then
-    kong.log.err(err);
+    kong.log.err(err)
     return kong.response.exit(401, { message = "Unable to get the IAM credentials! Check token!" })
   end
 
-  local expires = 0;
+  local expires = 0
 
   if iam_role_credentials then
     expires = iam_role_credentials.expiration
@@ -89,7 +89,7 @@ local function get_iam_credentials(sts_conf,refresh)
       sts_conf
     )
     if err then
-      kong.log.err(err);
+      kong.log.err(err)
       return kong.response.exit(401, { message = "Unable to refresh expired IAM credentials! Check token!" })
     end
     kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")

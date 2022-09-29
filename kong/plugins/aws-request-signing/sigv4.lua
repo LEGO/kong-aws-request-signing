@@ -4,6 +4,7 @@
 
 -- BSD License
 local resty_sha256 = require "resty.sha256"
+local to_hex = require "resty.string".to_hex
 -- MIT License
 local pl_string = require "pl.stringx"
 -- BSD 2-Clause License
@@ -17,11 +18,6 @@ local function notEmpty(s)
   return s ~= nil and s ~= ''
 end
 
-local CHAR_TO_HEX = {};
-for i = 0, 255 do
-  CHAR_TO_HEX[string.char(i)] = string.format("%02x", i)
-end
-
 local function hmac(secret, data)
   return openssl_hmac.new(secret, "sha256"):final(data)
 end
@@ -30,10 +26,6 @@ local function hash(str)
   local sha256 = resty_sha256:new()
   sha256:update(str)
   return sha256:final()
-end
-
-local function hex_encode(str) -- From prosody's util.hex
-  return str:gsub(".", CHAR_TO_HEX)
 end
 
 local function percent_encode(char)
@@ -182,9 +174,9 @@ local function prepare_awsv4_request(tbl)
     (canonical_querystring or "") .. '\n' ..
     canonical_headers .. '\n' ..
     signed_headers .. '\n' ..
-    hex_encode(hash(req_payload or ""))
+    to_hex(hash(req_payload or ""))
 
-  local hashed_canonical_request = hex_encode(hash(canonical_request))
+  local hashed_canonical_request = to_hex(hash(canonical_request))
   -- Task 2: Create a String to Sign for Signature Version 4
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
   local credential_scope = date .. "/" .. region .. "/" .. service .. "/aws4_request"
@@ -199,7 +191,7 @@ local function prepare_awsv4_request(tbl)
   if signing_key == nil then
     signing_key = derive_signing_key(secret_key, date, region, service)
   end
-  local signature = hex_encode(hmac(signing_key, string_to_sign))
+  local signature = to_hex(hmac(signing_key, string_to_sign))
   -- Task 4: Add the Signing Information to the Request
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-add-signature-to-request.html
   local authorization = ALGORITHM

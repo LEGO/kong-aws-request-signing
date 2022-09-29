@@ -73,14 +73,8 @@ local function get_iam_credentials(sts_conf,refresh)
     return kong.response.exit(401, { message = "Unable to get the IAM credentials! Check token!" })
   end
 
-  local expires = 0
-
-  if iam_role_credentials then
-    expires = iam_role_credentials.expiration
-  end
-  local now = get_now()
-
-  if ((now + 60) >= expires) then
+  if not iam_role_credentials
+    or (get_now() + 60) > iam_role_credentials.expiration then
     kong.cache:invalidate_local(iam_role_cred_cache_key)
     iam_role_credentials, err = kong.cache:get(
       iam_role_cred_cache_key,

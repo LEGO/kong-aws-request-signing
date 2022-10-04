@@ -9,3 +9,7 @@ globals = {
     "ngx",
     "_TEST"
 }
+
+ignore = {
+    "212/self",  -- don't complain about functions not using their implicit self arguments
+}

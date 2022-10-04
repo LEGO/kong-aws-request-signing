@@ -65,24 +65,22 @@ _G._TEST = true -- tell scripts we're testing so it can export the public functi
 
 local handler = require("kong.plugins.aws-request-signing.handler")
 
+-- FIXME: describe/it arguments are meant to be consumed by humans, no need to make them resemble identifiers.
 describe("retrieve_token_should", function()
   it("return_auth_token_from_correct_header", function()
-    local returnedToken = handler._retrieve_token()
+    local returnedToken = handler._retrieve_token("bearer " .. authGuid)
     assert.equal(authGuid, returnedToken)
   end)
   it("return_auth_token_from_correct_header_with_capital_B", function()
-    mock_request_headers["authorization"] = "Bearer " .. authGuid
-    local returnedToken = handler._retrieve_token()
+    local returnedToken = handler._retrieve_token("Bearer " .. authGuid)
     assert.equal(authGuid, returnedToken)
   end)
   it("return_nil_if_header_doesnt_contain_bearer", function()
-    mock_request_headers["authorization"] = "Basic whatever"
-    local returnedToken = handler._retrieve_token()
+    local returnedToken = handler._retrieve_token("Basic whatever")
     assert.falsy(returnedToken)
   end)
   it("return_nil_if_header_doesnt_exist", function()
-    mock_request_headers["authorization"] = nil
-    local returnedToken = handler._retrieve_token()
+    local returnedToken = handler._retrieve_token(nil)
     assert.falsy(returnedToken)
   end)
 end)

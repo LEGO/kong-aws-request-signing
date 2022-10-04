@@ -4,6 +4,7 @@
 
 -- BSD License
 local resty_sha256 = require "resty.sha256"
+local to_hex = require "resty.string".to_hex
 -- MIT License
 local pl_string = require "pl.stringx"
 -- BSD 2-Clause License
@@ -17,13 +18,6 @@ local function notEmpty(s)
   return s ~= nil and s ~= ''
 end
 
-local CHAR_TO_HEX = {};
-for i = 0, 255 do
-  local char = string.char(i)
-  local hex = string.format("%02x", i)
-  CHAR_TO_HEX[char] = hex
-end
-
 local function hmac(secret, data)
   return openssl_hmac.new(secret, "sha256"):final(data)
 end
@@ -32,10 +26,6 @@ local function hash(str)
   local sha256 = resty_sha256:new()
   sha256:update(str)
   return sha256:final()
-end
-
-local function hex_encode(str) -- From prosody's util.hex
-  return (str:gsub(".", CHAR_TO_HEX))
 end
 
 local function percent_encode(char)
@@ -65,8 +55,7 @@ local function canonicalise_path(path)
     segments[len] = nil
   end
   segments[0] = ""
-  local segmentsString = table.concat(segments, "/", 0, len)
-  return segmentsString
+  return table.concat(segments, "/", 0, len)
 end
 
 local function canonicalise_query_string(query)
@@ -84,8 +73,7 @@ local function derive_signing_key(kSecret, date, region, service)
   local kDate = hmac("AWS4" .. kSecret, date)
   local kRegion = hmac(kDate, region)
   local kService = hmac(kRegion, service)
-  local kSigning = hmac(kService, "aws4_request")
-  return kSigning
+  return hmac(kService, "aws4_request")
 end
 
 local function prepare_awsv4_request(tbl)
@@ -148,8 +136,8 @@ local function prepare_awsv4_request(tbl)
   end
 
   local lowerHeaders = {
-    ["x-amz-date"] = req_date;
-    host = host_header;
+    ["x-amz-date"] = req_date,
+    host = host_header
   }
 
   for k, v in pairs(req_headers) do
@@ -186,9 +174,9 @@ local function prepare_awsv4_request(tbl)
     (canonical_querystring or "") .. '\n' ..
     canonical_headers .. '\n' ..
     signed_headers .. '\n' ..
-    hex_encode(hash(req_payload or ""))
+    to_hex(hash(req_payload or ""))
 
-  local hashed_canonical_request = hex_encode(hash(canonical_request))
+  local hashed_canonical_request = to_hex(hash(canonical_request))
   -- Task 2: Create a String to Sign for Signature Version 4
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
   local credential_scope = date .. "/" .. region .. "/" .. service .. "/aws4_request"
@@ -203,7 +191,7 @@ local function prepare_awsv4_request(tbl)
   if signing_key == nil then
     signing_key = derive_signing_key(secret_key, date, region, service)
   end
-  local signature = hex_encode(hmac(signing_key, string_to_sign))
+  local signature = to_hex(hmac(signing_key, string_to_sign))
   -- Task 4: Add the Signing Information to the Request
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-add-signature-to-request.html
   local authorization = ALGORITHM
@@ -220,7 +208,7 @@ local function prepare_awsv4_request(tbl)
   local scheme = tls and "https" or "http"
   local url = scheme .. "://" .. host_header .. target
 
-  local returned = {
+  return {
     url = url,
     host = host,
     port = port,
@@ -230,8 +218,6 @@ local function prepare_awsv4_request(tbl)
     headers = lowerHeaders,
     body = req_payload,
   }
-
-  return returned
 end
 
 return prepare_awsv4_request

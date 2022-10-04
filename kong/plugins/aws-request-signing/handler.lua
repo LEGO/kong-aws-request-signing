@@ -111,7 +111,7 @@ function AWSLambdaSTS:access(conf)
 
   local iam_role_credentials = get_iam_credentials(sts_conf, request_headers["x-sts-refresh"])
 
-  upstream_headers = {
+  local upstream_headers = {
     ["x-authorization"] = kong.request.get_headers().authorization,
     ["x-amz-security-token"] = iam_role_credentials.session_token,
     host = service.host,

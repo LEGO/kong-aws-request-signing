@@ -78,11 +78,11 @@ Run the command on pongo host machine.
   curl -i -X POST \
    --url $kong_admin_url/services/$service_name/plugins/ \
    --data "name=$plugin_name" \
-   --data 'config.aws_assume_role_arn=arn:aws:iam::109381819741:role/lambda-access-role' \
+   --data 'config.aws_assume_role_arn=arn:aws:iam::100000000000:role/lambda-access-role' \
    --data 'config.aws_assume_role_name=lambda-access-role'\
    --data 'config.aws_region=eu-west-1' \
    --data 'config.aws_service=lambda' \
-   --data 'config.override_target_host=2wmbzq5efmua7pehie6wpktozm0nkeog.lambda-url.eu-west-1.on.aws' \
+   --data 'config.override_target_host=someString.lambda-url.eu-west-1.on.aws' \
    --data 'config.override_target_port=443' \
    --data 'config.override_target_protocol=https'
   ```

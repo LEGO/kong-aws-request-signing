@@ -4,12 +4,8 @@ return {
   name = "aws-request-signing",
   fields = {
     {
-      -- this plugin will only be applied to Services
+      -- this plugin will not be applied to consumers
       consumer = typedefs.no_consumer,
-    },
-    {
-      -- this plugin will only be applied to Services
-      route = typedefs.no_route
     },
     {
       -- this plugin will only run within Nginx HTTP module
@@ -35,6 +31,19 @@ return {
         { aws_service = {
           type = "string",
           required = true,
+        } },
+        { override_target_host = {
+          type = "string"
+        } },
+        { override_target_port = {
+          type = "number"
+        } },
+        { override_target_protocol = {
+          type = "string",
+              one_of = {
+                "http",
+                "https",
+              },
         } }
         }
       },

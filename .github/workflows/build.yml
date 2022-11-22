@@ -5,9 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'kong/**/*.lua'
-      - 'spec/*.lua'
-
+      - 'kong/**'
+      - 'spec/**'
 jobs:
   linting:
     name: Linting code.

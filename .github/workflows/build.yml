@@ -4,10 +4,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - 'kong'
-      - 'spec'
-
 jobs:
   linting:
     name: Linting code.

@@ -11,8 +11,6 @@ local get_raw_body = kong.request.get_raw_body
 local set_raw_body = kong.service.request.set_raw_body
 
 local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-request-signing.iam_role_temp_creds.%s"
-local AWS_PORT = 443
-
 local AWSLambdaSTS = {}
 
 local function fetch_aws_credentials(sts_conf)
@@ -96,6 +94,19 @@ end
 function AWSLambdaSTS:access(conf)
   local service = kong.router.get_service()
 
+  if conf.override_target_protocol then
+    service.protocol = conf.override_target_protocol;
+    kong.service.request.set_scheme(service.protocol)
+  end
+  if conf.override_target_port then
+    service.port = conf.override_target_port;
+    kong.service.set_target(service.host, service.port)
+  end
+  if conf.override_target_host then
+    service.host = conf.override_target_host;
+    kong.service.set_target(service.host, service.port)
+  end
+
   if service == nil then
     kong.log.err("Unable to retrieve bound service!")
     return kong.response.exit(500, { message = "Internal server error" })
@@ -125,7 +136,7 @@ function AWSLambdaSTS:access(conf)
     body = get_raw_body(),
     path = ngx.var.upstream_uri,
     host = service.host,
-    port = AWS_PORT,
+    port = service.port,
     query = kong.request.get_raw_query(),
     access_key = iam_role_credentials.access_key,
     secret_key = iam_role_credentials.secret_key,

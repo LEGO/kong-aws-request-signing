@@ -35,11 +35,11 @@ Below you will find some actions you might want to perform during plugin develop
 
 * ### inspect logs
 
+  Run the command on pongo host machine.
+
   ```sh
   pongo tail
   ```
-
-Run the command on pongo host machine.
 
 * ### reloading kong
 
@@ -63,7 +63,7 @@ Run the command on pongo host machine.
   export auth_token=
   ```
 
-* ### Simple service + route + plugin configuration
+* ### Configuring a simple service + route + plugin
 
   ```sh
   curl -i -X POST \
@@ -87,36 +87,10 @@ Run the command on pongo host machine.
    --data 'config.override_target_protocol=https'
   ```
 
-* ### Configuring a service a route and adding the Kong Request-Transformer and this plugin
-
-  ```sh
-  curl -i -X POST \
-   --url $kong_admin_url/services/ \
-   --data "name=$service_name" \
-   --data "url=https://$lambda_host/" && curl -i -X POST \
-   --url $kong_admin_url/services/$service_name/routes \
-   --data "paths[]=/digital/api/(?<g1>$service_name)" && curl -i -X POST \
-   --url $kong_admin_url/services/$service_name/plugins/ \
-   --data "name=request-transformer" \
-   --data 'config.replace.uri=/$(uri_captures.g1)'  && curl -i -X POST \
-   --url $kong_admin_url/services/$service_name/plugins/ \
-   --data "name=$plugin_name" \
-   --data 'config.aws_assume_role_arn=arn:aws:iam::300063049296:role/azure-lambda' \
-   --data 'config.aws_assume_role_name=azure-lambda'\
-   --data 'config.aws_region=eu-west-1' \
-   --data 'config.aws_service=lambda' 
-  ```
-
 * ### Simple Kong call
 
   ```sh
   curl -v -H "Authorization: Bearer $auth_token" $kong_proxy_url/$service_name
-  ```
-
-* ### Simple Kong call (Request-Transformer activated)
-
-  ```sh
-  curl -v -H "Authorization: Bearer $auth_token" $kong_proxy_url/digital/api/$service_name 
   ```
 
 * ### Complex Kong call
@@ -125,16 +99,10 @@ Run the command on pongo host machine.
   curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" $kong_proxy_url/$service_name?query=true --data '{"username":"xyz","password":"xyz"}' 
   ```
 
-* ### Complex Kong call (Request-Transformer activated)
+* ### Just like above with forced credentials refresh
 
   ```sh
-  curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" $kong_proxy_url/digital/api/$service_name?query=true --data '{"username":"xyz","password":"xyz"}' 
-  ```
-
-* ### Just like above with forced credentials refresh.
-
-  ```sh
-  curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" -H "x-sts-refresh: true" $kong_proxy_url/digital/api/$service_name?query=true --data '{"username":"xyz","password":"xyz"}' 
+  curl -v -H "Authorization: Bearer $auth_token" -H "Content-Type: application/json" -H "x-sts-refresh: true" $kong_proxy_url/$service_name?query=true --data '{"username":"xyz","password":"xyz"}' 
   ```
 
 * ### Change upstream of the service

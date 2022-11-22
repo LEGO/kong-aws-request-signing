@@ -37,11 +37,11 @@ override_target_host - To be used when deploying multiple lambdas on a single Ko
 type = "string"
 required = false
 
-override_target_port - To be used when deploying a lambda on a Kong service that listens on a port other than `443`
+override_target_port - To be used when deploying a Lambda on a Kong service that listens on a port other than `443`
 type = "number"
 required = false
 
-override_target_protocol - To be used when deployinglambda on a Kong service that has a protocol different than `https`
+override_target_protocol - To be used when deploying a Lambda on a Kong service that has a protocol different than `https`
 type = "string",
 one_of = "http", "https"
 required = false
@@ -51,10 +51,10 @@ required = false
 
 The plugin can be enabled on a per service as well as on a per route basis.
 
-When enabling the plugin on a service/route, the plugin will use the service upstream as the lambda target, unless `override_target_host` is specified.
-This configuration works fine only if a single Lambda is used in the entire service, if multiple lambdas are specified on a per path basis, without the `override_target_host` configured, they will all use the service upstream as the target, which will obviously fail.
+When enabling the plugin on a service/route, the plugin will use the service upstream as the Lambda target, unless `override_target_host` is specified.
+This configuration works fine only if a single Lambda is used in the entire service, if multiple lambdas are specified on a per path basis, without the `override_target_host` configured, they will all use the service upstream as the target and if the upstream is a Lambda, that means that all the routes will be served by the same service-level Lambda.
 
-***TLDR: If multiple lambdas are required for a single Kong service (which most likely is the case), the correct configuration is having a Kong route for each Lambda, enabling the plugin o a per-route basis with `override_target_host` on each of them, so the requests are routed to the right lambda.***
+***TLDR: If multiple lambdas are required for a single Kong service, the correct configuration is having a Kong route for each Lambda, enabling the plugin o a per-route basis with `override_target_host` on each of them, so the requests are routed to the right Lambda.***
 
 ## AWS Setup required
 

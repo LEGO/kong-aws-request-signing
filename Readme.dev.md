@@ -2,7 +2,7 @@
 
 ## Testing
 
-`Unit tests are not done yet`
+`Unit tests are not fully done yet`
 
 Performance test was done using K6 and 1400 up to 5800 virtual users.
 

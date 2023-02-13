@@ -15,7 +15,7 @@ jobs:
       - run: luarocks make
 
       - name: luarocks pack
-        run: luarocks pack $(find . -maxdepth 1 -name "kong-aws-request-signing-*" -print | sed 's/.\///g' | sed 's/.rockspec//g' | sed 's/signing-/signing /g')
+        run: luarocks pack $(find . -maxdepth 1 -name "kong-aws-request-signing-*.rockspec" -print | sed 's/.\///g' | sed 's/.rockspec//g' | sed 's/signing-/signing /g')
       
       - name: Get token to commit
         id: get_token

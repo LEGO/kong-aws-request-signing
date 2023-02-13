@@ -32,11 +32,8 @@ jobs:
           DESTINATION_BRANCH: feat/luarocks-build
         run: |
           export FILE_TO_COMMIT=$(find . -maxdepth 1 -name "kong-aws-request-signing-*.all.rock" -print | sed 's/.\///g')
-          mkdir -p rocks
-          mv $FILE_TO_COMMIT rocks/$FILE_TO_COMMIT
-          cd rocks
           export MESSAGE="Build rock: Added $FILE_TO_COMMIT"
-          export SHA=$(git rev-parse $DESTINATION_BRANCH:rocks/$FILE_TO_COMMIT )
+          export SHA=$( git rev-parse $DESTINATION_BRANCH:$FILE_TO_COMMIT )
           export CONTENT=$( base64 -i $FILE_TO_COMMIT )
           gh api --method PUT /repos/:owner/:repo/contents/rocks/$FILE_TO_COMMIT \
             --field message="$MESSAGE" \

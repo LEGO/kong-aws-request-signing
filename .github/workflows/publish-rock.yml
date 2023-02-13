@@ -2,7 +2,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
     
 
 jobs:
@@ -29,7 +28,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
           GH_TOKEN: ${{ steps.get_token.outputs.token }}
-          DESTINATION_BRANCH: feat/luarocks-build
+          DESTINATION_BRANCH: main
         run: |
           export FILE_TO_COMMIT=$(find . -maxdepth 1 -name "kong-aws-request-signing-*.all.rock" -print | sed 's/.\///g')
           export MESSAGE="Build rock: Added $FILE_TO_COMMIT"

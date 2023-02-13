@@ -19,11 +19,9 @@ aws_assume_role_arn - ARN of the IAM role that the plugin will try to assume
 type = "string"
 required = true
 
-
 aws_assume_role_name - Name of the role above.
 type = "string"
 required = true
-
 
 aws_region - AWS region where your Lambda is deployed to
 type = "string"
@@ -47,14 +45,49 @@ one_of = "http", "https"
 required = false
 ```
 
-## Service vs Route scoped configuration
+## Using multiple Lambdas with the same Kong Service
 
-The plugin can be enabled on a per service as well as on a per route basis.
+The plugin can be enabled on a per-service and per-route basis. When enabled for a route, the plugin will direct traffic to the service's upstream Lambda target, unless ***`override_target_host`*** is specified.
 
-When enabling the plugin on a service/route, the plugin will use the service upstream as the Lambda target, unless `override_target_host` is specified.
-This configuration works fine only if a single Lambda is used in the entire service, if multiple lambdas are specified on a per path basis, without the `override_target_host` configured, they will all use the service upstream as the target and if the upstream is a Lambda, that means that all the routes will be served by the same service-level Lambda.
+If multiple Lambdas are needed for a single service, each route must have the plugin enabled with ***`override_target_host`*** configured, so that requests are correctly routed to the right Lambda.
 
-***TLDR: If multiple lambdas are required for a single Kong service, the correct configuration is having a Kong route for each Lambda, enabling the plugin o a per-route basis with `override_target_host` on each of them, so the requests are routed to the right Lambda.***
+If ***`override_target_host`*** is not specified and multiple Lambdas are used in the service, all routes will be served by the same service-level host.
+
+You can also set the service protocol and host to something like `http://example.com` and then use `override_target_protocol` and `override_target_host` to changed it on the path level.
+
+## Installing the plugin
+
+There are two things necessary to make a custom plugin work in Kong:
+
+1. Load the plugin files.
+
+The easiest way to install the plugin is using `luarocks`.
+
+```sh
+luarocks install https://raw.githubusercontent.com/LEGO/kong-aws-request-signing/main/kong-aws-request-signing-1.0.0-3.all.rock
+```
+
+You can substitute `1.0.0-3` in the command above with any other version you want to install.
+
+If running Kong using the Helm chart, you will need to create a config map with the plugin files and mount it to `/opt/kong/plugins/aws-request-signing`. You can read more about this on [Kong's website.](https://docs.konghq.com/kubernetes-ingress-controller/latest/guides/setting-up-custom-plugins/)
+
+2. Specify that you want to use the plugin by modifying the plugins property in the Kong configuration.
+
+Add the custom plugin’s name to the list of plugins in your Kong configuration:
+
+```conf
+plugins = bundled, aws-request-signing
+```
+
+If you are using the Kong helm chart, create a configMap with the plugin files and add it to your `values.yaml` file:
+
+```yaml
+# values.yaml
+plugins:
+  configMaps:
+  - name: kong-plugin-aws-request-signing
+    pluginName: aws-request-signing
+```
 
 ## AWS Setup required
 

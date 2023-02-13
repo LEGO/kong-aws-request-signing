@@ -13,16 +13,18 @@ jobs:
       - uses: leafo/gh-actions-lua@v9
       - uses: leafo/gh-actions-luarocks@v4
       - run: luarocks make
-      - run: luarocks pack $(find . -maxdepth 1 -name "kong-aws-request-signing-*" -print | sed 's/.\///g' | sed 's/.rockspec//g' | sed 's/signing-/signing /g')
+
+      - name: luarocks pack
+        run: luarocks pack $(find . -maxdepth 1 -name "kong-aws-request-signing-*" -print | sed 's/.\///g' | sed 's/.rockspec//g' | sed 's/signing-/signing /g')
       
-      - name: Get token
+      - name: Get token to commit
         id: get_token
         uses: peter-murray/workflow-application-token-action@v2.1.0
         with:
           application_id: ${{ secrets.APP_GITHUB_100101_ID }} #Org app id
           application_private_key: ${{ secrets.APP_GITHUB_100101_PRIVATE_KEY }} #Org app secret
       
-      - name: Commit changes
+      - name: Commit the rock
         env:
           GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
           GH_TOKEN: ${{ steps.get_token.outputs.token }}
@@ -32,7 +34,7 @@ jobs:
           export MESSAGE="Build rock: Added $FILE_TO_COMMIT"
           export SHA=$( git rev-parse $DESTINATION_BRANCH:$FILE_TO_COMMIT )
           export CONTENT=$( base64 -i $FILE_TO_COMMIT )
-          gh api --method PUT /repos/:owner/:repo/contents/$FILE_TO_COMMIT \
+          gh api --method PUT /repos/:owner/:repo/contents/rocks/$FILE_TO_COMMIT \
             --field message="$MESSAGE" \
             --field content="$CONTENT" \
             --field encoding="base64" \

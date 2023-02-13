@@ -159,4 +159,3 @@ AWSLambdaSTS.PRIORITY = 110
 AWSLambdaSTS.VERSION = meta.version
 
 return AWSLambdaSTS
-

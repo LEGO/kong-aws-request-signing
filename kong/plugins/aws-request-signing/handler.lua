@@ -1,5 +1,4 @@
 local sigv4 = require "kong.plugins.aws-request-signing.sigv4"
-local meta = require "kong.meta"
 
 local kong = kong
 local ngx = ngx

@@ -1,5 +1,4 @@
 local sigv4 = require "kong.plugins.aws-request-signing.sigv4"
-local meta = require "kong.meta"
 
 local kong = kong
 local ngx = ngx
@@ -156,6 +155,6 @@ function AWSLambdaSTS:access(conf)
 end
 
 AWSLambdaSTS.PRIORITY = 110
-AWSLambdaSTS.VERSION = meta.version
+AWSLambdaSTS.VERSION = "1.0.0"
 
 return AWSLambdaSTS

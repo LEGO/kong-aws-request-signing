@@ -58,8 +58,8 @@ local function fetch_assume_role_credentials(assume_role_arn,
   if res.status ~= 200 then
     local err_s = json.encode({
       message  = 'Unable to assume role [' .. assume_role_arn .. ']',
-      sts_response_status = res.status,
-      sts_response_body = json.decode(res.body)
+      sts_status = res.status,
+      sts_body = json.decode(res.body)
     })
     return nil, err_s
   end

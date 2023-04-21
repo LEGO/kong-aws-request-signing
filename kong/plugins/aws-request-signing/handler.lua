@@ -69,7 +69,8 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
     kong.log.err(err)
     if(not (return_sts_error == nil) and return_sts_error == true ) then
       local errJson = err:gsub("failed to get from node cache:", "")
-      return kong.response.exit(401, { message = json.decode(errJson)})
+      local resError = json.decode(errJson)
+      return kong.response.exit(resError.sts_status, resError.sts_body)
     else
       return kong.response.exit(401, { message = 'Error fetching STS credentials!'})
     end
@@ -88,7 +89,8 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
       kong.log.err(err)
       if(not (return_sts_error == nil) and return_sts_error == true ) then
         local errJson = err:gsub("failed to get from node cache:", "")
-        return kong.response.exit(401, { message = json.decode(errJson)})
+        local resError = json.decode(errJson)
+        return kong.response.exit(resError.sts_status, resError.sts_body)
       else
         return kong.response.exit(401, { message = 'Error fetching STS credentials!'})
       end

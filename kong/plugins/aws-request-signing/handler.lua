@@ -67,12 +67,13 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
 
   if err then
     kong.log.err(err)
+    local message = 'Error fetching STS credentials!'
     if(not (return_sts_error == nil) and return_sts_error == true ) then
       local errJson = err:gsub("failed to get from node cache:", "")
       local resError = json.decode(errJson)
-      return kong.response.exit(resError.sts_status, resError.sts_body)
+      return kong.response.exit(resError.sts_status, { message = message, stsResponse = resError.sts_body })
     else
-      return kong.response.exit(401, { message = 'Error fetching STS credentials!'})
+      return kong.response.exit(401, {message = message})
     end
   end
 
@@ -87,12 +88,13 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
     )
     if err then
       kong.log.err(err)
+      local message = 'Error fetching STS credentials!'
       if(not (return_sts_error == nil) and return_sts_error == true ) then
         local errJson = err:gsub("failed to get from node cache:", "")
         local resError = json.decode(errJson)
-        return kong.response.exit(resError.sts_status, resError.sts_body)
+        return kong.response.exit(resError.sts_status, { message = message, stsResponse = resError.sts_body })
       else
-        return kong.response.exit(401, { message = 'Error fetching STS credentials!'})
+        return kong.response.exit(401, { message = message })
       end
     end
     kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")

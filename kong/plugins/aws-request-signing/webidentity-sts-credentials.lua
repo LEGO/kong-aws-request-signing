@@ -48,8 +48,10 @@ local function fetch_assume_role_credentials(assume_role_arn,
   })
 
   if err then
-    local err_s = 'Unable to assume role [' ..  assume_role_arn .. ']' ..
-                  ' due to: ' .. tostring(err)
+    local err_s = {
+      message  = 'Unable to assume role [' .. assume_role_arn .. ']',
+      error = tostring(err)
+    }
     return nil, err_s
   end
 

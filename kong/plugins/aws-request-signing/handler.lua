@@ -93,6 +93,11 @@ end
 function AWSLambdaSTS:access(conf)
   local service = kong.router.get_service()
 
+  if service == nil then
+    kong.log.err("Unable to retrieve bound service!")
+    return kong.response.exit(500, { message = "Internal server error 1!" })
+  end
+
   if conf.override_target_protocol then
     service.protocol = conf.override_target_protocol;
     kong.service.request.set_scheme(service.protocol)
@@ -104,11 +109,6 @@ function AWSLambdaSTS:access(conf)
   if conf.override_target_host then
     service.host = conf.override_target_host;
     kong.service.set_target(service.host, service.port)
-  end
-
-  if service == nil then
-    kong.log.err("Unable to retrieve bound service!")
-    return kong.response.exit(500, { message = "Internal server error" })
   end
 
   local request_headers = kong.request.get_headers()

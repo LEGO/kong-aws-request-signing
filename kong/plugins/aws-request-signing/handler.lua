@@ -95,7 +95,7 @@ function AWSLambdaSTS:access(conf)
 
   if service == nil then
     kong.log.err("Unable to retrieve bound service!")
-    return kong.response.exit(500, { message = "Internal server error 1!" })
+    return kong.response.set_header("x-err", "unable to retrieve bound service").exit(500, { message = "Internal server error!" })
   end
 
   if conf.override_target_protocol then

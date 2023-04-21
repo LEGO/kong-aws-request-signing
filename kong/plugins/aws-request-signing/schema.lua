@@ -48,7 +48,7 @@ return {
         { return_aws_sts_error = {
           type = "boolean",
           required = false,
-          default = true,
+          default = false,
         } },
         }
       },

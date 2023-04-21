@@ -67,7 +67,9 @@ local function get_iam_credentials(sts_conf, refresh)
 
   if err then
     kong.log.err(err)
-    return kong.response.exit(401, { message = json.decode(err:gsub("failed to get from node cache:", "")) })
+    err:gsub("failed to get from node cache:", "")
+    local errJson = err:gsub("failed to get from node cache:", "")
+    return kong.response.exit(401, { message = json.decode(errJson)})
   end
 
   if not iam_role_credentials
@@ -81,7 +83,8 @@ local function get_iam_credentials(sts_conf, refresh)
     )
     if err then
       kong.log.err(err)
-      return kong.response.exit(401, { message = json.decode(err:gsub("failed to get from node cache:", "")) })
+      local errJson = err:gsub("failed to get from node cache:", "")
+      return kong.response.exit(401, { message = json.decode(errJson)})
     end
     kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")
   end

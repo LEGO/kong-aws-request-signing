@@ -54,9 +54,11 @@ local function fetch_assume_role_credentials(assume_role_arn,
   end
 
   if res.status ~= 200 then
-    local err_s = 'Unable to assume role [' .. assume_role_arn .. '] due to:' ..
-                  'status [' .. res.status .. '] - ' ..
-                  'reason [' .. res.body .. ']'
+    local err_s = {
+      message  = 'Unable to assume role [' .. assume_role_arn .. ']',
+      sts_response_status = res.status,
+      str_response_body = res.body
+    }
     return nil, err_s
   end
 

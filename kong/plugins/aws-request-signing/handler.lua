@@ -4,6 +4,8 @@ local kong = kong
 local ngx = ngx
 local error = error
 local type = type
+local json  = require "cjson"
+
 
 local set_headers = kong.service.request.set_headers
 local get_raw_body = kong.request.get_raw_body
@@ -65,7 +67,7 @@ local function get_iam_credentials(sts_conf, refresh)
 
   if err then
     kong.log.err(err)
-    return kong.response.exit(401, { message = err })
+    return kong.response.exit(401, { message = json.decode(err:gsub("failed to get from node cache:", "")) })
   end
 
   if not iam_role_credentials
@@ -79,7 +81,7 @@ local function get_iam_credentials(sts_conf, refresh)
     )
     if err then
       kong.log.err(err)
-      return kong.response.exit(401, { message = err })
+      return kong.response.exit(401, { message = json.decode(err:gsub("failed to get from node cache:", "")) })
     end
     kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")
   end

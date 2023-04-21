@@ -50,7 +50,7 @@ if _TEST then
   AWSLambdaSTS._retrieve_token = retrieve_token
 end
 
-local function get_iam_credentials(sts_conf, refresh)
+local function get_iam_credentials(sts_conf, refresh, return_sts_error)
   local iam_role_cred_cache_key = string.format(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)
 
   if refresh then
@@ -67,9 +67,12 @@ local function get_iam_credentials(sts_conf, refresh)
 
   if err then
     kong.log.err(err)
-    err:gsub("failed to get from node cache:", "")
-    local errJson = err:gsub("failed to get from node cache:", "")
-    return kong.response.set_header("www", "token to sts exchange error").exit(401, { message = json.decode(errJson)})
+    if(not (return_sts_error == nil) and return_sts_error == true ) then
+      local errJson = err:gsub("failed to get from node cache:", "")
+      return kong.response.exit(401, { message = json.decode(errJson)})
+    else
+      return kong.response.exit(401, { message = 'Error fetching STS credentials!'})
+    end
   end
 
   if not iam_role_credentials
@@ -83,8 +86,12 @@ local function get_iam_credentials(sts_conf, refresh)
     )
     if err then
       kong.log.err(err)
-      local errJson = err:gsub("failed to get from node cache:", "")
-      return kong.response.set_header("www", "token to sts exchange error").exit(401, { message = json.decode(errJson)})
+      if(not (return_sts_error == nil) and return_sts_error == true ) then
+        local errJson = err:gsub("failed to get from node cache:", "")
+        return kong.response.exit(401, { message = json.decode(errJson)})
+      else
+        return kong.response.exit(401, { message = 'Error fetching STS credentials!'})
+      end
     end
     kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")
   end
@@ -100,7 +107,7 @@ function AWSLambdaSTS:access(conf)
 
   if service == nil then
     kong.log.err("Unable to retrieve bound service!")
-    return kong.response.set_header("x-err", "unable to retrieve bound service").exit(500, { message = "Internal error!" })
+    return kong.response.exit(500, { message = "Internal error 1!" })
   end
 
   if conf.override_target_protocol then
@@ -124,7 +131,7 @@ function AWSLambdaSTS:access(conf)
     RoleSessionName = conf.aws_assume_role_name,
   }
 
-  local iam_role_credentials = get_iam_credentials(sts_conf, request_headers["x-sts-refresh"])
+  local iam_role_credentials = get_iam_credentials(sts_conf, request_headers["x-sts-refresh"], conf.return_aws_sts_error)
 
   local upstream_headers = {
     ["x-authorization"] = kong.request.get_headers().authorization,

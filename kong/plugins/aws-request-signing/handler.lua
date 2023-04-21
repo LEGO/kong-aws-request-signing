@@ -69,7 +69,7 @@ local function get_iam_credentials(sts_conf, refresh)
     kong.log.err(err)
     err:gsub("failed to get from node cache:", "")
     local errJson = err:gsub("failed to get from node cache:", "")
-    return kong.response.exit(401, { message = json.decode(errJson)})
+    return kong.response.set_header("www", "token to sts exchange error").exit(401, { message = json.decode(errJson)})
   end
 
   if not iam_role_credentials
@@ -84,7 +84,7 @@ local function get_iam_credentials(sts_conf, refresh)
     if err then
       kong.log.err(err)
       local errJson = err:gsub("failed to get from node cache:", "")
-      return kong.response.exit(401, { message = json.decode(errJson)})
+      return kong.response.set_header("www", "token to sts exchange error").exit(401, { message = json.decode(errJson)})
     end
     kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")
   end
@@ -100,7 +100,7 @@ function AWSLambdaSTS:access(conf)
 
   if service == nil then
     kong.log.err("Unable to retrieve bound service!")
-    return kong.response.set_header("x-err", "unable to retrieve bound service").exit(500, { message = "Internal server error!" })
+    return kong.response.set_header("x-err", "unable to retrieve bound service").exit(500, { message = "Internal error!" })
   end
 
   if conf.override_target_protocol then

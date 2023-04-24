@@ -67,7 +67,7 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
 
   if err then
     kong.log.err(err)
-    if(not (return_sts_error == nil) and return_sts_error == true ) then
+    if(return_sts_error ~= nil and return_sts_error == true ) then
       local errJson = err:gsub("failed to get from node cache:", "")
       local resError = json.decode(errJson)
       return kong.response.exit(resError.sts_status, { message = resError.message, stsResponse = resError.sts_body })
@@ -87,7 +87,7 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
     )
     if err then
       kong.log.err(err)
-      if(not (return_sts_error == nil) and return_sts_error == true ) then
+      if(return_sts_error ~= nil and return_sts_error == true ) then
         local errJson = err:gsub("failed to get from node cache:", "")
         local resError = json.decode(errJson)
         return kong.response.exit(resError.sts_status, { message = resError.message, stsResponse = resError.sts_body })
@@ -133,7 +133,8 @@ function AWSLambdaSTS:access(conf)
     RoleSessionName = conf.aws_assume_role_name,
   }
 
-  local iam_role_credentials = get_iam_credentials(sts_conf, request_headers["x-sts-refresh"], conf.return_aws_sts_error)
+  local iam_role_credentials = get_iam_credentials(sts_conf, request_headers["x-sts-refresh"],
+                                                    conf.return_aws_sts_error)
 
   local upstream_headers = {
     ["x-authorization"] = kong.request.get_headers().authorization,

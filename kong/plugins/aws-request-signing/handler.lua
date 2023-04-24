@@ -10,6 +10,7 @@ local json  = require "cjson"
 local set_headers = kong.service.request.set_headers
 local get_raw_body = kong.request.get_raw_body
 local set_raw_body = kong.service.request.set_raw_body
+local set_raw_query = kong.service.request.set_raw_query
 
 local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-request-signing.iam_role_temp_creds.%s"
 local AWSLambdaSTS = {}
@@ -137,10 +138,12 @@ function AWSLambdaSTS:access(conf)
                                                     conf.return_aws_sts_error)
 
   local upstream_headers = {
-    ["x-authorization"] = kong.request.get_headers().authorization,
-    ["x-amz-security-token"] = iam_role_credentials.session_token,
     host = service.host,
+    ["x-authorization"] = request_headers.authorization
   }
+
+  -- removing the authorization, we either do not need it or we set it again later.
+  kong.service.request.clear_header("authorization")
 
   local opts = {
     region = conf.aws_region,
@@ -154,6 +157,8 @@ function AWSLambdaSTS:access(conf)
     query = kong.request.get_raw_query(),
     access_key = iam_role_credentials.access_key,
     secret_key = iam_role_credentials.secret_key,
+    session_token = iam_role_credentials.session_token,
+    sign_query = conf.sign_query
   }
 
   local request, err = sigv4(opts)
@@ -166,7 +171,7 @@ function AWSLambdaSTS:access(conf)
   end
 
   set_headers(request.headers)
-  set_raw_body(request.body)
+  set_raw_query(request.query)
 end
 
 AWSLambdaSTS.PRIORITY = 110

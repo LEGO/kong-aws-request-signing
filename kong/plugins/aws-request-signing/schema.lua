@@ -50,6 +50,11 @@ return {
           required = true,
           default = false,
         } },
+        { sign_query = {
+          type = "boolean",
+          required = false,
+          default = false,
+        } },
         }
       },
     }

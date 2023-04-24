@@ -27,7 +27,7 @@ aws_region - AWS region where your Lambda is deployed to
 type = "string"
 required = true
 
-aws_service - AWS Service you are trying to access (lambda)
+aws_service - AWS Service you are trying to access (lambda and s3 were tested)
 type = "string"
 required = true
 
@@ -48,6 +48,11 @@ return_aws_sts_error - Whether to return the AWS STS response status and body wh
 type = "boolean"
 default = false
 required = false
+
+sign_query - Controls if the signature will be sent in the header or in the query. By default, header is used, if enabled will sign the query.
+type = boolean
+required = true
+default = false
 ```
 
 ## Using multiple Lambdas with the same Kong Service
@@ -96,7 +101,7 @@ plugins:
 
 ## AWS Setup required
 
-1. You have a [Lambda function](https://eu-west-1.console.aws.amazon.com/lambda/home?region=eu-west-1#) deployed with `Function URL` enabled and Auth type : `AWS_IAM`
+1. You have a [Lambda function](https://eu-west-1.console.aws.amazon.com/lambda/home?region=eu-west-1#) deployed with `Function URL` enabled and Auth type : `AWS_IAM` or you have an S3 bucket with public access disabled.
 
 <details>
 <summary>Show image</summary>
@@ -106,7 +111,7 @@ plugins:
 </details>
 
 2. Your OpenID Connect provider is added to [AWS IAM](https://us-east-1.console.aws.amazon.com/iamv2/home?region=us-east-1#/identity_providers)
-3. You have a role with  `arn:aws:iam::aws:policy/AWSLambda_FullAccess` permision and the trust relationship below:
+3. You have a role with  `arn:aws:iam::aws:policy/AWSLambda_FullAccess` and/or `arn:aws:iam::aws:policy/AmazonS3FullAccess`  permision (or any other permision that grants access to your desired AWS service ) and the trust relationship below:
 
 <details>
 <summary>Show JSON</summary>

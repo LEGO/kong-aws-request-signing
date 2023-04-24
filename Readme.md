@@ -19,11 +19,9 @@ aws_assume_role_arn - ARN of the IAM role that the plugin will try to assume
 type = "string"
 required = true
 
-
 aws_assume_role_name - Name of the role above.
 type = "string"
 required = true
-
 
 aws_region - AWS region where your Lambda is deployed to
 type = "string"
@@ -42,8 +40,13 @@ type = "number"
 required = false
 
 override_target_protocol - To be used when deploying a Lambda on a Kong service that has a protocol different than `https`
-type = "string",
+type = "string"
 one_of = "http", "https"
+required = false
+
+return_aws_sts_error - Whether to return the AWS STS response status and body when credentials fetching failed.
+type = "boolean"
+default = false
 required = false
 ```
 

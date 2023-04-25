@@ -7,9 +7,9 @@ local type = type
 local json  = require "cjson"
 
 
-local set_headers = kong.service.request.set_headers
 local get_raw_body = kong.request.get_raw_body
-local set_raw_body = kong.service.request.set_raw_body
+
+local set_headers = kong.service.request.set_headers
 local set_raw_query = kong.service.request.set_raw_query
 
 local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-request-signing.iam_role_temp_creds.%s"

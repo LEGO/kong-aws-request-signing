@@ -59,6 +59,7 @@ local function canonicalise_path(path, aws_service)
     else
       local unescaped = ngx.unescape_uri(segment):gsub("[^%w%-%._~]",
       percent_encode)
+      -- lambda likes a different type of escapes for some reason?
       if aws_service == "lambda" then
         unescaped = url_encode(segment)
       end
@@ -130,77 +131,73 @@ local function prepare_awsv4_request(opts)
   local service = opts.service
   local request_method = opts.method
   local host = opts.host
-  local canonicalURI = canonicalise_path(opts.path, service)
+  local port = opts.port
 
-
-  local req_headers = opts.headers or {}
-  local req_payload = opts.body
   local access_key = opts.access_key
   local secret_key = opts.secret_key
 
-  local port = opts.port
-  local timestamp = opts.timestamp or ngx.time()
-  local req_date = os.date("!%Y%m%dT%H%M%SZ", timestamp)
+  local request_headers = opts.headers or {}
+  local request_payload = opts.body
+  local request_query = opts.query
+
+  local timestamp = ngx.time()
+  local request_date = os.date("!%Y%m%dT%H%M%SZ", timestamp)
   local date = os.date("!%Y%m%d", timestamp)
 
-  local host_header do -- If the "standard" port is not in use, the port should be added to the Host header
-    if port ~= 443 and port ~= 80 then
-      host_header = string.format("%s:%d", host, port)
-    else
-      host_header = host
-    end
-  end
-
-  req_headers["host"] = host_header
-
-  if not opts.sign_query then
-    req_headers["x-amz-date"] = req_date
-    req_headers["x-amz-security-token"] = opts.session_token
-    if service == "s3" then
-      req_headers["x-amz-expires"] = "300"
-      req_headers["x-amz-content-sha256"] = "UNSIGNED-PAYLOAD"
-    end
-  end
-
-  local transformedHeaders = get_canonical_headers(req_headers)
-
+  local canonical_uri = canonicalise_path(opts.path, service)
   local credential_scope = date .. "/" .. region .. "/" .. service .. "/aws4_request"
 
-  local expires = ""
-  if service == "s3" then
-    expires = "&X-Amz-Expires=300"
+  -- If the "standard" port is not in use, the port should be added to the Host header
+  local host_header do
+    if port == 443 or port == 80 then
+      host_header = host
+    else
+      host_header = string.format("%s:%d", host, port)
+    end
+  end
+  request_headers["host"] = host_header
+
+  if not opts.sign_query then
+    request_headers["x-amz-date"] = request_date
+    request_headers["x-amz-security-token"] = opts.session_token
+    if service == "s3" then
+      request_headers["x-amz-expires"] = "300"
+      request_headers["x-amz-content-sha256"] = "UNSIGNED-PAYLOAD"
+    end
   end
 
-  local req_query = opts.query
+  local transformed_headers = get_canonical_headers(request_headers)
 
   if opts.sign_query then
-    req_query = req_query .. "&X-Amz-Security-Token=" .. url_encode(opts.session_token)
+    local expires = ""
+    if service == "s3" then
+      expires = "&X-Amz-Expires=300"
+    end
+
+    request_query = request_query .. "&X-Amz-Security-Token=" .. url_encode(opts.session_token)
     .. expires
-    .. "&X-Amz-Date=" .. req_date
+    .. "&X-Amz-Date=" .. request_date
     .. "&X-Amz-Algorithm="..ALGORITHM
     .. "&X-Amz-Credential=" .. access_key .. "/" .. credential_scope
-    .. "&X-Amz-SignedHeaders=" .. transformedHeaders.signed_headers
-  else
-
+    .. "&X-Amz-SignedHeaders=" .. transformed_headers.signed_headers
   end
 
-  req_query = removeCharFromStart(req_query, "&")
-
-  local canonical_querystring = canonicalise_query_string(req_query)
+  request_query = removeCharFromStart(request_query, "&")
+  local canonical_querystring = canonicalise_query_string(request_query)
 
   -- Task 1: Create a Canonical Request For Signature Version 4
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
-  local bodyHash = to_hex(hash(req_payload or ""))
+  local bodyHash = to_hex(hash(request_payload or ""))
   if service == "s3" then
     bodyHash = "UNSIGNED-PAYLOAD"
   end
 
   local canonical_request =
     request_method .. '\n' ..
-    canonicalURI .. '\n' ..
+    canonical_uri .. '\n' ..
     (canonical_querystring or "") .. '\n' ..
-    transformedHeaders.canonical_headers .. '\n' ..
-    transformedHeaders.signed_headers .. '\n' ..
+    transformed_headers.canonical_headers .. '\n' ..
+    transformed_headers.signed_headers .. '\n' ..
     bodyHash
 
   local hashed_canonical_request = to_hex(hash(canonical_request))
@@ -210,30 +207,29 @@ local function prepare_awsv4_request(opts)
 
   local string_to_sign =
     ALGORITHM .. '\n' ..
-    req_date .. '\n' ..
+    request_date .. '\n' ..
     credential_scope .. '\n' ..
     hashed_canonical_request
 
   -- Task 3: Calculate the AWS Signature Version 4
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-calculate-signature.html
   local signing_key = derive_signing_key(secret_key, date, region, service)
-
   local signature = to_hex(hmac(signing_key, string_to_sign))
 
   -- Task 4: Add the Signing Information to the Request
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-add-signature-to-request.html
   if opts.sign_query then
-    req_query = req_query .. "&X-Amz-Signature=" .. signature
+    request_query = request_query .. "&X-Amz-Signature=" .. signature
   else
-    req_headers["authorization"] = ALGORITHM
+    request_headers["authorization"] = ALGORITHM
     .. " Credential=" .. access_key .. "/" .. credential_scope
-    .. ", SignedHeaders=" .. transformedHeaders.signed_headers
+    .. ", SignedHeaders=" .. transformed_headers.signed_headers
     .. ", Signature=" .. signature
   end
 
   return {
-    headers = req_headers,
-    query = req_query
+    headers = request_headers,
+    query = request_query
   }
 end
 

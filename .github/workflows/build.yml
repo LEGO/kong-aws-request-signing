@@ -29,3 +29,15 @@ jobs:
         with:
           kong_version: "2.8.x"
       - run: pongo run
+
+  build_rock:
+    name: Try to build the rock.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: leafo/gh-actions-lua@v9
+      - uses: leafo/gh-actions-luarocks@v4
+      - run: luarocks make
+
+      - name: luarocks pack
+        run: luarocks pack $(find . -maxdepth 1 -name "kong-aws-request-signing-*.rockspec" -print | sed 's/.\///g' | sed 's/.rockspec//g' | sed 's/signing-/signing /g')

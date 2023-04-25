@@ -137,6 +137,7 @@ function AWSLambdaSTS:access(conf)
   local iam_role_credentials = get_iam_credentials(sts_conf, request_headers["x-sts-refresh"],
                                                     conf.return_aws_sts_error)
 
+  -- we only send those two headers for signing
   local upstream_headers = {
     host = service.host,
     ["x-authorization"] = request_headers.authorization

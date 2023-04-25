@@ -52,7 +52,7 @@ return {
         } },
         { sign_query = {
           type = "boolean",
-          required = false,
+          required = true,
           default = false,
         } },
         }

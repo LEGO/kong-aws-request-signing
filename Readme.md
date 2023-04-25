@@ -40,8 +40,13 @@ type = "number"
 required = false
 
 override_target_protocol - To be used when deploying a Lambda on a Kong service that has a protocol different than `https`
-type = "string",
+type = "string"
 one_of = "http", "https"
+required = false
+
+return_aws_sts_error - Whether to return the AWS STS response status and body when credentials fetching failed.
+type = "boolean"
+default = false
 required = false
 ```
 

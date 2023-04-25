@@ -48,15 +48,19 @@ local function fetch_assume_role_credentials(assume_role_arn,
   })
 
   if err then
-    local err_s = 'Unable to assume role [' ..  assume_role_arn .. ']' ..
-                  ' due to: ' .. tostring(err)
+    local err_s = json.encode({
+      message  = 'Unable to assume role [' .. assume_role_arn .. ']',
+      error = tostring(err)
+    })
     return nil, err_s
   end
 
   if res.status ~= 200 then
-    local err_s = 'Unable to assume role [' .. assume_role_arn .. '] due to:' ..
-                  'status [' .. res.status .. '] - ' ..
-                  'reason [' .. res.body .. ']'
+    local err_s = json.encode({
+      message  = 'Unable to assume role [' .. assume_role_arn .. ']',
+      sts_status = res.status,
+      sts_body = json.decode(res.body)
+    })
     return nil, err_s
   end
 

@@ -1,0 +1,45 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "*.rockspec"
+  workflow_dispatch:
+    
+
+jobs:
+  build_rock:
+    name: Build and commit the rock file.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: leafo/gh-actions-lua@v9
+      - uses: leafo/gh-actions-luarocks@v4
+      - run: luarocks make
+
+      - name: luarocks pack
+        run: luarocks pack $(find . -maxdepth 1 -name "kong-aws-request-signing-*.rockspec" -print | sed 's/.\///g' | sed 's/.rockspec//g' | sed 's/signing-/signing /g')
+      
+      - name: Get token to commit
+        id: get_token
+        uses: peter-murray/workflow-application-token-action@v2.1.0
+        with:
+          application_id: ${{ secrets.APP_GITHUB_100101_ID }} #Org app id
+          application_private_key: ${{ secrets.APP_GITHUB_100101_PRIVATE_KEY }} #Org app secret
+      
+      - name: Commit the rock
+        env:
+          GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
+          GH_TOKEN: ${{ steps.get_token.outputs.token }}
+          DESTINATION_BRANCH: main
+        run: |
+          export FILE_TO_COMMIT=$(find . -maxdepth 1 -name "kong-aws-request-signing-*.all.rock" -print | sed 's/.\///g')
+          export MESSAGE="Build rock: Added $FILE_TO_COMMIT"
+          export SHA=$( git rev-parse $DESTINATION_BRANCH:$FILE_TO_COMMIT )
+          export CONTENT=$( base64 -i $FILE_TO_COMMIT )
+          gh api --method PUT /repos/:owner/:repo/contents/rocks/$FILE_TO_COMMIT \
+            --field message="$MESSAGE" \
+            --field content="$CONTENT" \
+            --field encoding="base64" \
+            --field branch="$DESTINATION_BRANCH" \
+            --field sha="$SHA"

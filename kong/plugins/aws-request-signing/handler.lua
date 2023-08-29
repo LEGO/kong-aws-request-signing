@@ -139,7 +139,7 @@ function AWSLambdaSTS:access(conf)
 
   -- we only send those two headers for signing
   local upstream_headers = {
-    host = service.host,
+    host = conf.override_target_host or service.host,
     ["x-authorization"] = request_headers.authorization
   }
 
@@ -153,7 +153,7 @@ function AWSLambdaSTS:access(conf)
     headers = upstream_headers,
     body = get_raw_body(),
     path = ngx.var.upstream_uri,
-    host = service.host,
+    host = conf.override_target_host or service.host,
     port = service.port,
     query = kong.request.get_raw_query(),
     access_key = iam_role_credentials.access_key,

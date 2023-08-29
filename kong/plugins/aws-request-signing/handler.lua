@@ -120,9 +120,12 @@ function AWSLambdaSTS:access(conf)
   if conf.override_target_port and conf.override_target_host then
     kong.service.set_target(conf.override_target_host, conf.override_target_port)
   end
-  -- if conf.override_target_host then
-  --   kong.service.set_target(conf.override_target_host, service.port)
-  -- end
+  if conf.override_target_host then
+    kong.service.set_target(conf.override_target_host, service.port)
+  end
+  if conf.override_target_port then
+    kong.service.set_target(service.host, conf.override_target_port)
+  end
 
 
   local sts_conf = {

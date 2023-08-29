@@ -108,6 +108,7 @@ end
 function AWSLambdaSTS:access(conf)
   local service = kong.router.get_service()
   local request_headers = kong.request.get_headers()
+  local final_host = conf.override_target_host or service.host
 
   if service == nil then
     kong.log.err("Unable to retrieve bound service!")
@@ -119,12 +120,10 @@ function AWSLambdaSTS:access(conf)
   end
   if conf.override_target_port and conf.override_target_host then
     kong.service.set_target(conf.override_target_host, conf.override_target_port)
-  end
-  if conf.override_target_host then
+  elseif conf.override_target_host then
     kong.service.set_target(conf.override_target_host, service.port)
-  end
-  if conf.override_target_port then
-    kong.service.set_target(service.host, conf.override_target_port)
+  elseif conf.override_target_port then
+    kong.service.set_target(final_host, conf.override_target_port)
   end
 
 
@@ -139,7 +138,7 @@ function AWSLambdaSTS:access(conf)
 
   -- we only send those two headers for signing
   local upstream_headers = {
-    host = conf.override_target_host or service.host,
+    host = final_host,
     ["x-authorization"] = request_headers.authorization
   }
 
@@ -153,7 +152,7 @@ function AWSLambdaSTS:access(conf)
     headers = upstream_headers,
     body = get_raw_body(),
     path = ngx.var.upstream_uri,
-    host = conf.override_target_host or service.host,
+    host = final_host,
     port = service.port,
     query = kong.request.get_raw_query(),
     access_key = iam_role_credentials.access_key,

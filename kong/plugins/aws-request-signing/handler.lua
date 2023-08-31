@@ -107,6 +107,8 @@ end
 
 function AWSLambdaSTS:access(conf)
   local service = kong.router.get_service()
+  local request_headers = kong.request.get_headers()
+  local final_host = conf.override_target_host or service.host
 
   if service == nil then
     kong.log.err("Unable to retrieve bound service!")
@@ -114,19 +116,16 @@ function AWSLambdaSTS:access(conf)
   end
 
   if conf.override_target_protocol then
-    service.protocol = conf.override_target_protocol;
-    kong.service.request.set_scheme(service.protocol)
+    kong.service.request.set_scheme(conf.override_target_protocol)
   end
-  if conf.override_target_port then
-    service.port = conf.override_target_port;
-    kong.service.set_target(service.host, service.port)
-  end
-  if conf.override_target_host then
-    service.host = conf.override_target_host;
-    kong.service.set_target(service.host, service.port)
+  if conf.override_target_port and conf.override_target_host then
+    kong.service.set_target(conf.override_target_host, conf.override_target_port)
+  elseif conf.override_target_host then
+    kong.service.set_target(conf.override_target_host, service.port)
+  elseif conf.override_target_port then
+    kong.service.set_target(final_host, conf.override_target_port)
   end
 
-  local request_headers = kong.request.get_headers()
 
   local sts_conf = {
     RoleArn = conf.aws_assume_role_arn,
@@ -139,7 +138,7 @@ function AWSLambdaSTS:access(conf)
 
   -- we only send those two headers for signing
   local upstream_headers = {
-    host = service.host,
+    host = final_host,
     ["x-authorization"] = request_headers.authorization
   }
 
@@ -153,7 +152,7 @@ function AWSLambdaSTS:access(conf)
     headers = upstream_headers,
     body = get_raw_body(),
     path = ngx.var.upstream_uri,
-    host = service.host,
+    host = final_host,
     port = service.port,
     query = kong.request.get_raw_query(),
     access_key = iam_role_credentials.access_key,
@@ -176,6 +175,6 @@ function AWSLambdaSTS:access(conf)
 end
 
 AWSLambdaSTS.PRIORITY = 110
-AWSLambdaSTS.VERSION = "1.0.2"
+AWSLambdaSTS.VERSION = "1.0.3"
 
 return AWSLambdaSTS

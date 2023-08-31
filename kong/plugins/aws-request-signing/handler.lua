@@ -175,6 +175,6 @@ function AWSLambdaSTS:access(conf)
 end
 
 AWSLambdaSTS.PRIORITY = 110
-AWSLambdaSTS.VERSION = "1.0.2"
+AWSLambdaSTS.VERSION = "1.0.3"
 
 return AWSLambdaSTS

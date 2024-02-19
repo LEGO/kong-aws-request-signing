@@ -19,7 +19,7 @@ jobs:
         with:
           args: kong spec
   unit-tests:
-    needs: linting 
+    needs: linting
     name: Running unit tests.
     runs-on: ubuntu-latest
     steps:
@@ -41,3 +41,12 @@ jobs:
 
       - name: luarocks pack
         run: luarocks pack $(find . -maxdepth 1 -name "kong-aws-request-signing-*.rockspec" -print | sed 's/.\///g' | sed 's/.rockspec//g' | sed 's/signing-/signing /g')
+
+      - name: get version
+        id: version
+        run: echo "version=$(luarocks show aws-request-signing --mversion)" >> "$GITHUB_OUTPUT"
+
+      - name: Echo version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: echo $VERSION

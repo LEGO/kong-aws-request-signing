@@ -53,3 +53,4 @@ jobs:
         with:
           tag: ${{ steps.version.outputs.version }}
           name: Release ${{ steps.version.outputs.version }}
+          token: ${{ steps.get_token.outputs.token }}

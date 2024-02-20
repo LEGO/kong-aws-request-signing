@@ -74,7 +74,7 @@ There are two things necessary to make a custom plugin work in Kong:
 The easiest way to install the plugin is using `luarocks`.
 
 ```sh
-luarocks install https://raw.githubusercontent.com/LEGO/kong-aws-request-signing/main/kong-aws-request-signing-1.0.0-3.all.rock
+luarocks install https://github.com/LEGO/kong-aws-request-signing/raw/main/rocks/kong-aws-request-signing-1.0.4-3.all.rock
 ```
 
 You can substitute `1.0.0-3` in the command above with any other version you want to install.

@@ -9,9 +9,10 @@ local github_repo_name = "kong-aws-request-signing"
 package = package_name
 version = package_version .. "-" .. rockspec_revision
 supported_platforms = { "linux", "macosx" }
+
 source = {
   url = "git+https://github.com/"..github_account_name.."/"..github_repo_name..".git",
-  branch = version,
+  branch = "main",
 }
 
 

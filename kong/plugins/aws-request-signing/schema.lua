@@ -33,7 +33,8 @@ return {
           required = true,
         } },
         { override_target_host = {
-          type = "string"
+          type = "string",
+          not_match = "^https?://"
         } },
         { override_target_port = {
           type = "number"

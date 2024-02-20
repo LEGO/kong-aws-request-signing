@@ -5,7 +5,7 @@ on:
     paths:
       - "*.rockspec"
   workflow_dispatch:
-    
+
 
 jobs:
   build_rock:
@@ -19,14 +19,18 @@ jobs:
 
       - name: luarocks pack
         run: luarocks pack $(find . -maxdepth 1 -name "kong-aws-request-signing-*.rockspec" -print | sed 's/.\///g' | sed 's/.rockspec//g' | sed 's/signing-/signing /g')
-      
+
+      - name: get version
+        id: version
+        run: echo "version=$(luarocks show aws-request-signing --mversion)" >> "$GITHUB_OUTPUT"
+
       - name: Get token to commit
         id: get_token
         uses: peter-murray/workflow-application-token-action@v2.1.0
         with:
           application_id: ${{ secrets.APP_GITHUB_100101_ID }} #Org app id
           application_private_key: ${{ secrets.APP_GITHUB_100101_PRIVATE_KEY }} #Org app secret
-      
+
       - name: Commit the rock
         env:
           GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
@@ -43,3 +47,10 @@ jobs:
             --field encoding="base64" \
             --field branch="$DESTINATION_BRANCH" \
             --field sha="$SHA"
+
+      - name: Create a GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          token: ${{ steps.get_token.outputs.token }}

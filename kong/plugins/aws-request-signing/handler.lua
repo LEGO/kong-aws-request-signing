@@ -139,18 +139,27 @@ function AWSLambdaSTS:access(conf)
   -- we only send those two headers for signing
   local upstream_headers = {
     host = final_host,
-    ["x-authorization"] = request_headers.authorization
+    ["content-length"] = request_headers["content-length"],
+    ["content-type"] = request_headers["content-type"]
+    -- ["x-authorization"] = request_headers.authorization
   }
 
   -- removing the authorization, we either do not need it or we set it again later.
   kong.service.request.clear_header("authorization")
+
+  local body, body_err = kong.request.get_raw_body()
+  kong.log.err(body_err)
+
+  if body_err then
+    return kong.response.exit(400, { message = "The request body is too big!" })
+  end
 
   local opts = {
     region = conf.aws_region,
     service = conf.aws_service,
     method = kong.request.get_method(),
     headers = upstream_headers,
-    body = get_raw_body(),
+    body = body,
     path = ngx.var.upstream_uri,
     host = final_host,
     port = service.port,

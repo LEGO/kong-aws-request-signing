@@ -91,27 +91,15 @@ local function canonicalise_query_string(query)
 end
 
 local function get_canonical_headers(headers)
-  local canonical_headers, signed_headers do
-    -- We structure this code in a way so that we only have to sort once.
-    canonical_headers, signed_headers = {}, {}
-    local i = 0
-    for name, value in pairs(headers) do
-      if value then -- ignore headers with 'false', they are used to override defaults
-        i = i + 1
-        local name_lower = name:lower()
-        signed_headers[i] = name_lower
-        canonical_headers[name_lower] = pl_string.strip(value)
-      end
-    end
-    table.sort(signed_headers)
-    for j=1, i do
-      local name = signed_headers[j]
-      local value = canonical_headers[name]
-      canonical_headers[j] = name .. ":" .. value .. "\n"
-    end
-    signed_headers = table.concat(signed_headers, ";", 1, i)
-    canonical_headers = table.concat(canonical_headers, nil, 1, i)
+  local a= {}
+  local canonical_headers = ""
+  for n in pairs(headers) do table.insert(a, n) end
+  table.sort(a)
+  local signed_headers = table.concat(a, ";", 1)
+  for i,n in pairs(a) do
+    canonical_headers = canonical_headers .. n .. ":" .. headers[n] .. "\n"
   end
+
   return {
     canonical_headers = canonical_headers,
     signed_headers = signed_headers
@@ -218,18 +206,28 @@ local function prepare_awsv4_request(opts)
   -- Task 4: Add the Signing Information to the Request
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-add-signature-to-request.html
   -- https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
+  local authHeader = ALGORITHM
+  .. " Credential=" .. access_key .. "/" .. credential_scope
+  .. ", SignedHeaders=" .. transformed_headers.signed_headers
+  .. ", Signature=" .. signature
+
   if opts.sign_query then
     request_query = request_query .. "&X-Amz-Signature=" .. signature
   else
-    request_headers["authorization"] = ALGORITHM
-    .. " Credential=" .. access_key .. "/" .. credential_scope
-    .. ", SignedHeaders=" .. transformed_headers.signed_headers
-    .. ", Signature=" .. signature
+    request_headers["authorization"] = authHeader
   end
 
   return {
     headers = request_headers,
-    query = request_query
+    query = request_query,
+    transformed_headers = transformed_headers,
+    canonical_request = canonical_request,
+    hashed_canonical_request = hashed_canonical_request,
+    string_to_sign = string_to_sign,
+    signing_key = to_hex(signing_key),
+    signature = signature,
+    authHeader = authHeader,
+    body = opts.body
   }
 end
 

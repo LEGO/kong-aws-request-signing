@@ -197,7 +197,6 @@ local function prepare_awsv4_request(opts)
 
   -- Task 2: Create a String to Sign for Signature Version 4
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
-
   local string_to_sign =
     ALGORITHM .. '\n' ..
     request_date .. '\n' ..
@@ -212,7 +211,6 @@ local function prepare_awsv4_request(opts)
   -- Task 4: Add the Signing Information to the Request
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-add-signature-to-request.html
   -- https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
-
   if opts.sign_query then
     request_query = request_query .. "&X-Amz-Signature=" .. signature
   else

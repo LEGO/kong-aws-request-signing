@@ -6,12 +6,6 @@ local error = error
 local type = type
 local json  = require "cjson"
 
-
-local get_raw_body = kong.request.get_raw_body
-
-local set_headers = kong.service.request.set_headers
-local set_raw_query = kong.service.request.set_raw_query
-
 local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-request-signing.iam_role_temp_creds.%s"
 local AWSLambdaSTS = {}
 
@@ -52,6 +46,7 @@ if _TEST then
 end
 
 local function get_iam_credentials(sts_conf, refresh, return_sts_error)
+  local generic_error = "Error fetching STS credentials. Enable 'return_sts_error' in config for details."
   local iam_role_cred_cache_key = string.format(IAM_CREDENTIALS_CACHE_KEY_PATTERN, sts_conf.RoleArn)
 
   if refresh then
@@ -73,7 +68,7 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
       local resError = json.decode(errJson)
       return kong.response.exit(resError.sts_status, { message = resError.message, stsResponse = resError.sts_body })
     else
-      return kong.response.exit(401, {message = 'Error fetching STS credentials!'})
+      return kong.response.exit(401, {message = generic_error})
     end
   end
 
@@ -93,7 +88,7 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
         local resError = json.decode(errJson)
         return kong.response.exit(resError.sts_status, { message = resError.message, stsResponse = resError.sts_body })
       else
-        return kong.response.exit(401, {message = 'Error fetching STS credentials!'})
+        return kong.response.exit(401, {message = generic_error})
       end
     end
     kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")
@@ -112,7 +107,13 @@ function AWSLambdaSTS:access(conf)
 
   if service == nil then
     kong.log.err("Unable to retrieve bound service!")
-    return kong.response.exit(500, { message = "Internal error 1!" })
+    return kong.response.exit(500, { message = "The plugin must be bound to a service!" })
+  end
+
+  if conf.preserve_auth_header then
+    kong.service.request.set_headers({
+      [conf.preserve_auth_header_key] = request_headers.authorization
+    })
   end
 
   if conf.override_target_protocol then
@@ -139,27 +140,30 @@ function AWSLambdaSTS:access(conf)
   -- we only send those two headers for signing
   local upstream_headers = {
     host = final_host,
+    -- those will be nill thus we only pass the host on requests without body
     ["content-length"] = request_headers["content-length"],
     ["content-type"] = request_headers["content-type"]
-    -- ["x-authorization"] = request_headers.authorization
   }
 
   -- removing the authorization, we either do not need it or we set it again later.
   kong.service.request.clear_header("authorization")
 
-  local body, body_err = kong.request.get_raw_body()
-  kong.log.err(body_err)
+  -- might fail if too big. is controlled by the folowing nginx params:
+  -- nginx_http_client_max_body_size
+  -- nginx_http_client_body_buffer_size
+  local req_body, get_body_err = kong.request.get_raw_body()
 
-  if body_err then
-    return kong.response.exit(400, { message = "The request body is too big!" })
+  if get_body_err or req_body == nil then
+    kong.log.err(get_body_err)
+    return kong.response.exit(400, { message = "Request body exceeds size limit and cannot be used by plugins." })
   end
 
-  local opts = {
+  local sigv4_opts = {
     region = conf.aws_region,
     service = conf.aws_service,
     method = kong.request.get_method(),
     headers = upstream_headers,
-    body = body,
+    body = req_body,
     path = ngx.var.upstream_uri,
     host = final_host,
     port = service.port,
@@ -170,20 +174,21 @@ function AWSLambdaSTS:access(conf)
     sign_query = conf.sign_query
   }
 
-  local request, err = sigv4(opts)
-  if err then
-    return error(err)
+  local signed_request, sigv4_err = sigv4(sigv4_opts)
+  if sigv4_err then
+    kong.log.err(sigv4_err)
+    return error(sigv4_err)
   end
 
-  if not request then
+  if not signed_request then
     return kong.response.exit(500, { message = "Unable to SIGV4 the request!" })
   end
 
-  set_headers(request.headers)
-  set_raw_query(request.query)
+  kong.service.request.set_headers(signed_request.headers)
+  kong.service.request.set_raw_query(signed_request.query)
 end
 
 AWSLambdaSTS.PRIORITY = 110
-AWSLambdaSTS.VERSION = "1.0.4"
+AWSLambdaSTS.VERSION = "1.0.5"
 
 return AWSLambdaSTS

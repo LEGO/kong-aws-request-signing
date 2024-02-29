@@ -212,15 +212,15 @@ local function prepare_awsv4_request(opts)
   -- Task 4: Add the Signing Information to the Request
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-add-signature-to-request.html
   -- https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
-  local authHeader = ALGORITHM
-  .. " Credential=" .. access_key .. "/" .. credential_scope
-  .. ", SignedHeaders=" .. canonical_headers.signed_headers
-  .. ", Signature=" .. signature
 
   if opts.sign_query then
     request_query = request_query .. "&X-Amz-Signature=" .. signature
   else
-    request_headers["authorization"] = authHeader
+    local auth_header = ALGORITHM
+    .. " Credential=" .. access_key .. "/" .. credential_scope
+    .. ", SignedHeaders=" .. canonical_headers.signed_headers
+    .. ", Signature=" .. signature
+    request_headers["authorization"] = auth_header
   end
 
   return {

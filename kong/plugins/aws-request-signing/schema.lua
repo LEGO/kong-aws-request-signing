@@ -56,6 +56,16 @@ return {
           required = true,
           default = false,
         } },
+        { preserve_auth_header = {
+          type = "boolean",
+          required = true,
+          default = true,
+        } },
+        { preserve_auth_header_key = {
+          type = "string",
+          required = true,
+          default = "x-authorization",
+        } }
         }
       },
     }

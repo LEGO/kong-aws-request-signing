@@ -50,9 +50,19 @@ default = false
 required = false
 
 sign_query - Controls if the signature will be sent in the header or in the query. By default, header is used, if enabled will sign the query.
-type = boolean
+type = "boolean"
 required = true
 default = false
+
+preserve_auth_header - Controls if the bearer token will be passed to the upstream
+type = "boolean"
+required = true
+default = true
+
+preserve_auth_header_key - The header key where the bearer token will be saved and passed to the upstream. works only if 'preserve_auth_header' parameter above is set to true.
+type = "string"
+required = true
+default = "x-authorization"
 ```
 
 ## Using multiple Lambdas with the same Kong Service
@@ -74,7 +84,7 @@ There are two things necessary to make a custom plugin work in Kong:
 The easiest way to install the plugin is using `luarocks`.
 
 ```sh
-luarocks install https://github.com/LEGO/kong-aws-request-signing/raw/main/rocks/kong-aws-request-signing-1.0.4-3.all.rock
+luarocks install https://github.com/LEGO/kong-aws-request-signing/raw/main/rocks/kong-aws-request-signing-1.0.5-3.all.rock
 ```
 
 You can substitute `1.0.0-3` in the command above with any other version you want to install.
@@ -98,6 +108,20 @@ plugins:
   - name: kong-plugin-aws-request-signing
     pluginName: aws-request-signing
 ```
+
+## Signing requests containing a body
+
+In case of requests contanining a body, the plugin is highly reliant on the nginx configuration, because it neets to access the body to sign it.
+The behaviour is controlled by the following Kong configuration parameters:
+
+```text
+nginx_http_client_max_body_size
+nginx_http_client_body_buffer_size
+```
+
+[Kong docs reference.](https://docs.konghq.com/gateway/latest/reference/configuration/#nginx_http_client_body_buffer_size)
+
+The default value for max body size is `0`, which means unlimited, so consider setting the `nginx_http_client_body_buffer_size` as high as you consider reasonable, as requests containing a bigger body, will fail.
 
 ## AWS Setup required
 

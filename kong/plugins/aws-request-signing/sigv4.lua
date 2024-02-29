@@ -91,27 +91,19 @@ local function canonicalise_query_string(query)
 end
 
 local function get_canonical_headers(headers)
-  local canonical_headers, signed_headers do
-    -- We structure this code in a way so that we only have to sort once.
-    canonical_headers, signed_headers = {}, {}
-    local i = 0
-    for name, value in pairs(headers) do
-      if value then -- ignore headers with 'false', they are used to override defaults
-        i = i + 1
-        local name_lower = name:lower()
-        signed_headers[i] = name_lower
-        canonical_headers[name_lower] = pl_string.strip(value)
-      end
-    end
-    table.sort(signed_headers)
-    for j=1, i do
-      local name = signed_headers[j]
-      local value = canonical_headers[name]
-      canonical_headers[j] = name .. ":" .. value .. "\n"
-    end
-    signed_headers = table.concat(signed_headers, ";", 1, i)
-    canonical_headers = table.concat(canonical_headers, nil, 1, i)
+  local signed_headers_arr = {}
+  local canonical_headers = ""
+
+  -- sorting all header names after inserting in an array
+  for header_key in pairs(headers) do table.insert(signed_headers_arr, header_key:lower()) end
+  table.sort(signed_headers_arr)
+
+  -- going over the sorted array and adding the header and header values to the canonical headers
+  local signed_headers = table.concat(signed_headers_arr, ";", 1)
+  for _, header_key in pairs(signed_headers_arr) do
+    canonical_headers = canonical_headers .. header_key .. ":" .. pl_string.strip(headers[header_key]) .. "\n"
   end
+
   return {
     canonical_headers = canonical_headers,
     signed_headers = signed_headers
@@ -136,7 +128,7 @@ local function prepare_awsv4_request(opts)
   local secret_key = opts.secret_key
 
   local request_headers = opts.headers or {}
-  local request_payload = opts.body
+  local request_body = opts.body
   local request_query = opts.query
 
   local timestamp = ngx.time()
@@ -146,6 +138,9 @@ local function prepare_awsv4_request(opts)
   local canonical_uri = canonicalise_path(opts.path, service)
   local credential_scope = date .. "/" .. region .. "/" .. service .. "/aws4_request"
 
+
+  local bodyHash = to_hex(hash(request_body))
+
   -- If the "standard" port is not in use, the port should be added to the Host header
   local host_header do
     if port == 443 or port == 80 then
@@ -154,31 +149,35 @@ local function prepare_awsv4_request(opts)
       host_header = string.format("%s:%d", host, port)
     end
   end
+
   request_headers["host"] = host_header
+  request_headers["x-amz-content-sha256"] = bodyHash
+
+  local expiresInSeconds = 300
 
   if not opts.sign_query then
     request_headers["x-amz-date"] = request_date
     request_headers["x-amz-security-token"] = opts.session_token
     if service == "s3" then
-      request_headers["x-amz-expires"] = "300"
-      request_headers["x-amz-content-sha256"] = "UNSIGNED-PAYLOAD"
+      request_headers["x-amz-expires"] = expiresInSeconds .. ""
     end
   end
 
-  local transformed_headers = get_canonical_headers(request_headers)
+  local canonical_headers = get_canonical_headers(request_headers)
 
   if opts.sign_query then
-    local expires = ""
+    local expires_query_param = ""
     if service == "s3" then
-      expires = "&X-Amz-Expires=300"
+      expires_query_param = "&X-Amz-Expires=" .. expiresInSeconds
     end
 
-    request_query = request_query .. "&X-Amz-Security-Token=" .. url_encode(opts.session_token)
-    .. expires
+    request_query = request_query
+    .. "&X-Amz-Security-Token=" .. url_encode(opts.session_token)
+    .. expires_query_param
     .. "&X-Amz-Date=" .. request_date
     .. "&X-Amz-Algorithm="..ALGORITHM
     .. "&X-Amz-Credential=" .. access_key .. "/" .. credential_scope
-    .. "&X-Amz-SignedHeaders=" .. transformed_headers.signed_headers
+    .. "&X-Amz-SignedHeaders=" .. canonical_headers.signed_headers
   end
 
   request_query = removeCharFromStart(request_query, "&")
@@ -186,24 +185,18 @@ local function prepare_awsv4_request(opts)
 
   -- Task 1: Create a Canonical Request For Signature Version 4
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
-  local bodyHash = to_hex(hash(request_payload or ""))
-  if service == "s3" then
-    bodyHash = "UNSIGNED-PAYLOAD"
-  end
-
   local canonical_request =
     request_method .. '\n' ..
     canonical_uri .. '\n' ..
     (canonical_querystring or "") .. '\n' ..
-    transformed_headers.canonical_headers .. '\n' ..
-    transformed_headers.signed_headers .. '\n' ..
+    canonical_headers.canonical_headers .. '\n' ..
+    canonical_headers.signed_headers .. '\n' ..
     bodyHash
 
   local hashed_canonical_request = to_hex(hash(canonical_request))
 
   -- Task 2: Create a String to Sign for Signature Version 4
   -- http://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html
-
   local string_to_sign =
     ALGORITHM .. '\n' ..
     request_date .. '\n' ..
@@ -221,10 +214,11 @@ local function prepare_awsv4_request(opts)
   if opts.sign_query then
     request_query = request_query .. "&X-Amz-Signature=" .. signature
   else
-    request_headers["authorization"] = ALGORITHM
+    local auth_header = ALGORITHM
     .. " Credential=" .. access_key .. "/" .. credential_scope
-    .. ", SignedHeaders=" .. transformed_headers.signed_headers
+    .. ", SignedHeaders=" .. canonical_headers.signed_headers
     .. ", Signature=" .. signature
+    request_headers["authorization"] = auth_header
   end
 
   return {

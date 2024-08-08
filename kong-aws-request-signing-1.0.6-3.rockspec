@@ -1,6 +1,6 @@
 local plugin_name = "aws-request-signing"
 local package_name = "kong-" .. plugin_name
-local package_version = "1.0.5"
+local package_version = "1.0.6"
 local rockspec_revision = "3"
 
 local github_account_name = "LEGO"

@@ -6,7 +6,7 @@
 
 This plugin will sign a request with AWS SIGV4 and temporary credentials from `sts.amazonaws.com` requested using an OAuth token.
 
-It enables the secure use of AWS [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/) being registered as "Host" in a Kong service.
+The AWS SIGV4 signature enables secure proxying directly towards AWS services such as [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/).
 
 At the same time it drives down cost and complexity by excluding the AWS API Gateway and allowing to use AWS Lambdas directly.
 
@@ -33,7 +33,7 @@ aws_service - AWS Service you are trying to access (lambda and s3 were tested)
 type = "string"
 required = true
 
-override_target_host - To be used when deploying multiple lambdas on a single Kong service (because lambdas have differennt URLs)
+override_target_host - To be used when deploying multiple lambdas on a single Kong service (because lambdas have different URLs)
 type = "string"
 required = false
 

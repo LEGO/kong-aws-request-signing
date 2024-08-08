@@ -6,11 +6,13 @@
 
 This plugin will sign a request with AWS SIGV4 and temporary credentials from `sts.amazonaws.com` requested using an OAuth token.
 
-It enables the secure use of AWS Lambdas as upstreams in Kong using [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/).
+It enables the secure use of AWS [Lambda URLs](https://aws.amazon.com/blogs/aws/announcing-aws-lambda-function-urls-built-in-https-endpoints-for-single-function-microservices/) being registered as "Host" in a Kong service.
 
 At the same time it drives down cost and complexity by excluding the AWS API Gateway and allowing to use AWS Lambdas directly.
 
 The required AWS setup to make the plugin work with your Lambda HTTPS endpoint is described below.
+
+Note that this plugin cannot be used in combination with Kong [upstreams](https://docs.konghq.com/gateway/latest/get-started/load-balancing/).
 
 ## Plugin configuration parameters
 
@@ -111,8 +113,8 @@ plugins:
 
 ## Signing requests containing a body
 
-In case of requests contanining a body, the plugin is highly reliant on the nginx configuration, because it neets to access the body to sign it.
-The behaviour is controlled by the following Kong configuration parameters:
+In case of requests containing a body, the plugin is highly reliant on the nginx configuration, because it needs to access the body to sign it.
+The behavior is controlled by the following Kong configuration parameters:
 
 ```text
 nginx_http_client_max_body_size
@@ -135,7 +137,7 @@ The default value for max body size is `0`, which means unlimited, so consider s
 </details>
 
 2. Your OpenID Connect provider is added to [AWS IAM](https://us-east-1.console.aws.amazon.com/iamv2/home?region=us-east-1#/identity_providers)
-3. You have a role with  `arn:aws:iam::aws:policy/AWSLambda_FullAccess` and/or `arn:aws:iam::aws:policy/AmazonS3FullAccess`  permision (or any other permision that grants access to your desired AWS service ) and the trust relationship below:
+3. You have a role with  `arn:aws:iam::aws:policy/AWSLambda_FullAccess` and/or `arn:aws:iam::aws:policy/AmazonS3FullAccess`  permission (or any other permission that grants access to your desired AWS service ) and the trust relationship below:
 
 <details>
 <summary>Show JSON</summary>

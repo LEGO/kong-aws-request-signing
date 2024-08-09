@@ -103,7 +103,7 @@ end
 function AWSLambdaSTS:access(conf)
   local service = kong.router.get_service()
   local request_headers = kong.request.get_headers()
-  local final_host = conf.override_target_host or service.host
+  local final_host = conf.override_target_host or ngx.ctx.balancer_data.host
 
   if service == nil then
     kong.log.err("Unable to retrieve bound service!")
@@ -188,7 +188,7 @@ function AWSLambdaSTS:access(conf)
   kong.service.request.set_raw_query(signed_request.query)
 end
 
-AWSLambdaSTS.PRIORITY = 110
-AWSLambdaSTS.VERSION = "1.0.5"
+AWSLambdaSTS.PRIORITY = 15
+AWSLambdaSTS.VERSION = "1.0.6"
 
 return AWSLambdaSTS

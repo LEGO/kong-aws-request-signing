@@ -1,19 +1,19 @@
-local sigv4 = require "kong.plugins.aws-request-signing.sigv4"
+local sigv4                             = require "kong.plugins.aws-request-signing.sigv4"
 
-local kong = kong
-local ngx = ngx
-local error = error
-local type = type
-local json  = require "cjson"
+local kong                              = kong
+local ngx                               = ngx
+local error                             = error
+local type                              = type
+local json                              = require "cjson"
 
 local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-request-signing.iam_role_temp_creds.%s"
-local AWSLambdaSTS = {}
+local AWSLambdaSTS                      = {}
 
 local function fetch_aws_credentials(sts_conf)
   local sts = require('kong.plugins.aws-request-signing.webidentity-sts-credentials')
 
   local result, err =
-    sts.fetch_assume_role_credentials(sts_conf.RoleArn, sts_conf.RoleSessionName, sts_conf.WebIdentityToken)
+      sts.fetch_assume_role_credentials(sts_conf.RoleArn, sts_conf.RoleSessionName, sts_conf.WebIdentityToken)
 
   if err then
     return nil, err
@@ -63,17 +63,17 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
 
   if err then
     kong.log.err(err)
-    if(return_sts_error ~= nil and return_sts_error == true ) then
+    if (return_sts_error ~= nil and return_sts_error == true) then
       local errJson = err:gsub("failed to get from node cache:", "")
       local resError = json.decode(errJson)
       return kong.response.exit(resError.sts_status, { message = resError.message, stsResponse = resError.sts_body })
     else
-      return kong.response.exit(401, {message = generic_error})
+      return kong.response.exit(401, { message = generic_error })
     end
   end
 
   if not iam_role_credentials
-    or (get_now() + 60) > iam_role_credentials.expiration then
+      or (get_now() + 60) > iam_role_credentials.expiration then
     kong.cache:invalidate_local(iam_role_cred_cache_key)
     iam_role_credentials, err = kong.cache:get(
       iam_role_cred_cache_key,
@@ -83,12 +83,12 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
     )
     if err then
       kong.log.err(err)
-      if(return_sts_error ~= nil and return_sts_error == true ) then
+      if (return_sts_error ~= nil and return_sts_error == true) then
         local errJson = err:gsub("failed to get from node cache:", "")
         local resError = json.decode(errJson)
         return kong.response.exit(resError.sts_status, { message = resError.message, stsResponse = resError.sts_body })
       else
-        return kong.response.exit(401, {message = generic_error})
+        return kong.response.exit(401, { message = generic_error })
       end
     end
     kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")
@@ -103,7 +103,6 @@ end
 function AWSLambdaSTS:access(conf)
   local service = kong.router.get_service()
   local request_headers = kong.request.get_headers()
-  local final_host = conf.override_target_host or ngx.ctx.balancer_data.host
 
   if service == nil then
     kong.log.err("Unable to retrieve bound service!")
@@ -116,15 +115,42 @@ function AWSLambdaSTS:access(conf)
     })
   end
 
+  local target_altered = false
+
+  local balancer_host = ngx.ctx.balancer_data.host
+  local balancer_port = ngx.ctx.balancer_data.port
+  local signed_host = balancer_host
+  local signed_port = balancer_port
+
+  if balancer_host ~= service.host then
+    target_altered = true
+  end
+  if balancer_port ~= service.port then
+    target_altered = true
+  end
+
+
   if conf.override_target_protocol then
     kong.service.request.set_scheme(conf.override_target_protocol)
   end
-  if conf.override_target_port and conf.override_target_host then
-    kong.service.set_target(conf.override_target_host, conf.override_target_port)
-  elseif conf.override_target_host then
-    kong.service.set_target(conf.override_target_host, service.port)
-  elseif conf.override_target_port then
-    kong.service.set_target(final_host, conf.override_target_port)
+
+  local perform_override = true
+  if conf.use_altered_target and target_altered then
+    perform_override = false
+  end
+
+  if perform_override then
+    if conf.override_target_port and conf.override_target_host then
+      signed_host = conf.override_target_host
+      signed_port = conf.override_target_port
+      kong.service.set_target(conf.override_target_host, conf.override_target_port)
+    elseif conf.override_target_host then
+      signed_host = conf.override_target_host
+      kong.service.set_target(conf.override_target_host, signed_port)
+    elseif conf.override_target_port then
+      signed_port = conf.override_target_port
+      kong.service.set_target(signed_host, conf.override_target_port)
+    end
   end
 
 
@@ -135,12 +161,12 @@ function AWSLambdaSTS:access(conf)
   }
 
   local iam_role_credentials = get_iam_credentials(sts_conf, request_headers["x-sts-refresh"],
-                                                    conf.return_aws_sts_error)
+    conf.return_aws_sts_error)
 
-  -- we only send those two headers for signing
+  -- we only send those headers for signing
   local upstream_headers = {
-    host = final_host,
-    -- those will be nill thus we only pass the host on requests without body
+    host = signed_host,
+    -- those will be nil which means that we only pass the host on requests without body
     ["content-length"] = request_headers["content-length"],
     ["content-type"] = request_headers["content-type"]
   }
@@ -165,8 +191,8 @@ function AWSLambdaSTS:access(conf)
     headers = upstream_headers,
     body = req_body,
     path = ngx.var.upstream_uri,
-    host = final_host,
-    port = service.port,
+    host = signed_host,
+    port = signed_port,
     query = kong.request.get_raw_query(),
     access_key = iam_role_credentials.access_key,
     secret_key = iam_role_credentials.secret_key,
@@ -189,6 +215,6 @@ function AWSLambdaSTS:access(conf)
 end
 
 AWSLambdaSTS.PRIORITY = 15
-AWSLambdaSTS.VERSION = "1.0.6"
+AWSLambdaSTS.VERSION = "1.0.7"
 
 return AWSLambdaSTS

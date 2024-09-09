@@ -17,54 +17,59 @@ Note that this plugin cannot be used in combination with Kong [upstreams](https:
 ## Plugin configuration parameters
 
 ```lua
-aws_assume_role_arn - ARN of the IAM role that the plugin will try to assume
+aws_assume_role_arn -- ARN of the IAM role that the plugin will try to assume
 type = "string"
 required = true
 
-aws_assume_role_name - Name of the role above.
+aws_assume_role_name -- Name of the role above.
 type = "string"
 required = true
 
-aws_region - AWS region where your Lambda is deployed to
+aws_region -- AWS region where your Lambda is deployed to
 type = "string"
 required = true
 
-aws_service - AWS Service you are trying to access (lambda and s3 were tested)
+aws_service -- AWS Service you are trying to access (lambda and s3 were tested)
 type = "string"
 required = true
 
-override_target_host - To be used when deploying multiple lambdas on a single Kong service (because lambdas have different URLs)
+override_target_host -- To be used when deploying multiple lambdas on a single Kong service (because lambdas have different URLs)
 type = "string"
 required = false
 
-override_target_port - To be used when deploying a Lambda on a Kong service that listens on a port other than `443`
+override_target_port -- To be used when deploying a Lambda on a Kong service that listens on a port other than `443`
 type = "number"
 required = false
 
-override_target_protocol - To be used when deploying a Lambda on a Kong service that has a protocol different than `https`
+override_target_protocol -- To be used when deploying a Lambda on a Kong service that has a protocol different than `https`
 type = "string"
 one_of = "http", "https"
 required = false
 
-return_aws_sts_error - Whether to return the AWS STS response status and body when credentials fetching failed.
+return_aws_sts_error -- Whether to return the AWS STS response status and body when credentials fetching failed.
 type = "boolean"
 default = false
 required = false
 
-sign_query - Controls if the signature will be sent in the header or in the query. By default, header is used, if enabled will sign the query.
+sign_query -- Controls if the signature will be sent in the header or in the query. By default, header is used, if enabled will sign the query.
 type = "boolean"
 required = true
 default = false
 
-preserve_auth_header - Controls if the bearer token will be passed to the upstream
+preserve_auth_header -- Controls if the bearer token will be passed to the upstream
 type = "boolean"
 required = true
 default = true
 
-preserve_auth_header_key - The header key where the bearer token will be saved and passed to the upstream. works only if 'preserve_auth_header' parameter above is set to true.
+preserve_auth_header_key -- The header key where the bearer token will be saved and passed to the upstream. works only if 'preserve_auth_header' parameter above is set to true.
 type = "string"
 required = true
 default = "x-authorization"
+
+use_altered_target -- if another plugin changes the target to something other than what is registered on the service - use that target rather than the overrides of this plugin.
+type = "boolean"
+required = true
+default = false
 ```
 
 ## Using multiple Lambdas with the same Kong Service
@@ -76,6 +81,10 @@ If multiple Lambdas are needed for a single service, each route must have the pl
 If ***`override_target_host`*** is not specified and multiple Lambdas are used in the service, all routes will be served by the same service-level host.
 
 You can also set the service protocol and host to something like `http://example.com` and then use `override_target_protocol` and `override_target_host` to changed it on the path level.
+
+The ***`use_altered_target`*** is useful if another plugin with higher priority has changed the target, and we would like that to take precedence over the overrides of this plugin.
+This can be used when combining this plugin with e.g. the `canary-release`.
+
 
 ## Installing the plugin
 

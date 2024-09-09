@@ -67,7 +67,7 @@ return {
               required = true,
               default = false,
               description =
-                  "Instructs the plugin to use the context target if it's host or port were altered "..
+                  "Instructs the plugin to use the context target if its host or port were altered "..
                   " (by other plugins) during the signing, bypassing the override_target_host "..
                   "and override_target_port parameters. Works by comparing the service target parameters"..
                   " with the context target parameters. Ignored if the target was not altered."

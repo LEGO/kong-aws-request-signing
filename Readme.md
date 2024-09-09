@@ -66,7 +66,7 @@ type = "string"
 required = true
 default = "x-authorization"
 
-use_altered_target -- if another plugin changes the target to something else than what is registered on the service - use that target rather than the overrides of this plugin.
+use_altered_target -- if another plugin changes the target to something other than what is registered on the service - use that target rather than the overrides of this plugin.
 type = "boolean"
 required = true
 default = false

@@ -23,34 +23,42 @@ fixtures.dns_mock:A{
 
 -- This block is for mocking the call to sts.amazonaws.com
 fixtures.http_mock.sts_server_block = [[
-     server {
-         listen 443 ssl;
-         server_name sts.amazonaws.com;
-         ssl_certificate /kong/spec/fixtures/kong_spec.crt;
-         ssl_certificate_key /kong/spec/fixtures/kong_spec.key;
-         ssl_protocols TLSv1.1 TLSv1.2 TLSv1.3;
-
-         location "/" {
-            return 200 '{"AssumeRoleWithWebIdentityResponse":{"AssumeRoleWithWebIdentityResult":{"Credentials":{"AccessKeyId":"A","SecretAccessKey":"B","SessionToken":"C","Expiration":1726572582}}}}';
-         }
-     }
-   ]]
+  server {
+    listen 443 ssl;
+    server_name sts.amazonaws.com;
+    ssl_certificate /kong/spec/fixtures/kong_spec.crt;
+    ssl_certificate_key /kong/spec/fixtures/kong_spec.key;
+    ssl_protocols TLSv1.1 TLSv1.2 TLSv1.3;
+    location "/" {
+      return 200 '{
+        "AssumeRoleWithWebIdentityResponse":{
+          "AssumeRoleWithWebIdentityResult":{
+            "Credentials":{
+              "AccessKeyId":"A",
+              "SecretAccessKey":"B",
+              "SessionToken":"C",
+              "Expiration":1726572582
+            }
+          }
+        }
+      }';
+    }
+  }
+]]
 
 -- This bloc is for mocking the overrided host specified in one of the tests
 fixtures.http_mock.test_server_block = [[
-    server {
-        listen 9443 ssl;
-        server_name test2a.com;
-        ssl_certificate /kong/spec/fixtures/kong_spec.crt;
-        ssl_certificate_key /kong/spec/fixtures/kong_spec.key;
-        ssl_protocols TLSv1.1 TLSv1.2 TLSv1.3;
-
-        location /testoverride {
-          return 200 '{"host": "$http_host", "uri": "$uri", "agent":"$http_user_agent"}';
-        }
-
+  server {
+    listen 9443 ssl;
+    server_name test2a.com;
+    ssl_certificate /kong/spec/fixtures/kong_spec.crt;
+    ssl_certificate_key /kong/spec/fixtures/kong_spec.key;
+    ssl_protocols TLSv1.1 TLSv1.2 TLSv1.3;
+    location /testoverride {
+      return 200 '{"host": "$http_host", "uri": "$uri", "agent":"$http_user_agent"}';
     }
-  ]]
+  }
+]]
 
 -- These functions are used to calculate the signature for the request
 local function hmac(secret, data)
@@ -71,7 +79,7 @@ local function hash(str)
 end
 
 local function calulate_signature(headers, method, uri)
-    local canonical_request = "GET\n" .. uri .. "\n\nhost:" .. headers["host"] .. "\nx-amz-content-sha256:" ..
+    local canonical_request = method .. "\n" .. uri .. "\n\nhost:" .. headers["host"] .. "\nx-amz-content-sha256:" ..
                                   headers["x-amz-content-sha256"] .. "\nx-amz-date:" .. headers["x-amz-date"] ..
                                   "\nx-amz-security-token:" .. headers["x-amz-security-token"] ..
                                   "\n\nhost;x-amz-content-sha256;x-amz-date;x-amz-security-token\n" ..
@@ -229,7 +237,7 @@ for _, strategy in helpers.all_strategies() do
                 -- check signature info is in the headers
                 assert.is.falsy(json.headers["x-amz-date"])
                 assert.is.falsy(json.headers["x-amz-security-token"])
-              end)
+            end)
 
         end)
     end)

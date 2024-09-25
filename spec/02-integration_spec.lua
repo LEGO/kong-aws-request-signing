@@ -12,8 +12,14 @@ local fixtures = {
     stream_mock = {},
     dns_mock = helpers.dns_mock.new()
 }
-fixtures.dns_mock:A { name = "sts.amazonaws.com",address = "127.0.0.1" }
-fixtures.dns_mock:A { name = "test2a.com", address = "127.0.0.1" }
+fixtures.dns_mock:A{
+    name = "sts.amazonaws.com",
+    address = "127.0.0.1"
+}
+fixtures.dns_mock:A{
+    name = "test2a.com",
+    address = "127.0.0.1"
+}
 
 -- This block is for mocking the call to sts.amazonaws.com
 fixtures.http_mock.sts_server_block = [[
@@ -46,6 +52,7 @@ fixtures.http_mock.test_server_block = [[
     }
   ]]
 
+-- These functions are used to calculate the signature for the request
 local function hmac(secret, data)
     return openssl_hmac.new(secret, "sha256"):final(data)
 end
@@ -77,6 +84,7 @@ local function calulate_signature(headers, method, uri)
     return signature
 end
 
+-- Now orchestrate the tests
 for _, strategy in helpers.all_strategies() do
 
     describe("Plugin: " .. PLUGIN_NAME .. ": (access) [#" .. strategy .. "]", function()
@@ -85,25 +93,11 @@ for _, strategy in helpers.all_strategies() do
         lazy_setup(function()
             local bp = helpers.get_db_utils(strategy, nil, {PLUGIN_NAME})
 
+            -- Assets for test: "should place a valid signature in headers by default"
             local route1 = bp.routes:insert({
                 hosts = {"test1.com"},
                 name = "route1"
             })
-
-            local service2 = bp.services:insert({
-                connect_timeout = 1000,
-                name = "service2",
-                url = "https://test2.com:6443",
-                retries = 0
-            })
-
-            local route2 = bp.routes:insert({
-                name = "route2",
-                paths = {"/testoverride"},
-                service = service2,
-                strip_path = false
-            })
-
             bp.plugins:insert{
                 name = PLUGIN_NAME,
                 route = {
@@ -117,6 +111,19 @@ for _, strategy in helpers.all_strategies() do
                 }
             }
 
+            -- Assets for test: "should override host when configured"
+            local service2 = bp.services:insert({
+                connect_timeout = 1000,
+                name = "service2",
+                url = "https://test2.com:6443",
+                retries = 0
+            })
+            local route2 = bp.routes:insert({
+                name = "route2",
+                paths = {"/testoverride"},
+                service = service2,
+                strip_path = false
+            })
             bp.plugins:insert{
                 name = PLUGIN_NAME,
                 route = {
@@ -131,13 +138,29 @@ for _, strategy in helpers.all_strategies() do
                     override_target_port = 9443
                 }
             }
-            -- start kong
+
+            -- Assets for test: "should place signature information in query string when config enables it"
+            local route3 = bp.routes:insert({
+                hosts = {"test3.com"},
+                name = "route3"
+            })
+            bp.plugins:insert{
+                name = PLUGIN_NAME,
+                route = {
+                    id = route3.id
+                },
+                config = {
+                    aws_region = "eu-west-1",
+                    aws_service = "lambda",
+                    aws_assume_role_name = "test-role-name",
+                    aws_assume_role_arn = "arn:aws:iam::123456789012:role/test-role-name",
+                    sign_query = true
+                }
+            }
+
             assert(helpers.start_kong({
-                -- set the strategy
                 database = strategy,
-                -- use the custom test template to create a local mock server
                 nginx_conf = "spec/fixtures/custom_nginx.template",
-                -- make sure our plugin gets loaded
                 plugins = "bundled," .. PLUGIN_NAME
             }, nil, nil, fixtures))
         end)
@@ -170,38 +193,43 @@ for _, strategy in helpers.all_strategies() do
                 local json = cjson.decode(body)
                 assert.is.truthy(json.headers["x-amz-content-sha256"])
                 assert.is.truthy(json.headers["x-amz-date"])
-                assert.is.truthy(json.headers["x-amz-security-token"]) -- this tests that it is placed in header
+                assert.is.truthy(json.headers["x-amz-security-token"])
                 local calculated_signature = calulate_signature(json.headers, json.vars.request_method, json.vars.uri)
                 local _, _, signature_from_header = string.find(json.headers["authorization"], "Signature=(.*)")
                 assert.match(calculated_signature, signature_from_header)
             end)
 
-            it("should place signature information in query string when config enables it", function()
-              local res = assert(proxy_client:send {
-                method  = "GET",
-                path    = "/status/200",
-                headers = {
-                  ["Host"] = "test1.com",
-                }
-              })
-              local body = assert.res_status(200, res)
-              local json = cjson.decode(body)
-              assert.is.truthy(json.headers["x-amz-content-sha256"])
-              assert.is.falsy(json.uri_args["x-amz-date"])
-              assert.is.falsy(json.uri_args["x-amz-security-token"])
-              assert.is.falsy(json.uri_args["x-amz-Signature"])
+            it("should override host when configured", function()
+                local res = proxy_client:get("/testoverride", {
+                    headers = {
+                        ["Host"] = "test2.com"
+                    }
+                })
+                local body = assert.res_status(200, res)
+                local json = cjson.decode(body)
+                assert.match("test2a.com", json["host"])
             end)
 
-            it("should override host when configured", function()
-              local res = proxy_client:get("/testoverride", {
-                headers = {
-                  ["Host"] = "test2.com",
-                }
-              })
-              local body = assert.res_status(200, res)
-              local json = cjson.decode(body)
-              assert.match("test2a.com", json["host"])
-            end)
+            it("should place signature information in query string when config 'sign_query' is true", function()
+                local res = assert(proxy_client:send{
+                    method = "GET",
+                    path = "/status/200",
+                    headers = {
+                        ["Host"] = "test3.com"
+                    }
+                })
+                local body = assert.res_status(200, res)
+                local json = cjson.decode(body)
+                -- the x-amz-content-sha256 will still be in the header
+                assert.is.truthy(json.headers["x-amz-content-sha256"])
+                -- check signature info is in the uri
+                assert.is.truthy(json.uri_args["X-Amz-Date"])
+                assert.is.truthy(json.uri_args["X-Amz-Security-Token"])
+                assert.is.truthy(json.uri_args["X-Amz-Signature"])
+                -- check signature info is in the headers
+                assert.is.falsy(json.headers["x-amz-date"])
+                assert.is.falsy(json.headers["x-amz-security-token"])
+              end)
 
         end)
     end)

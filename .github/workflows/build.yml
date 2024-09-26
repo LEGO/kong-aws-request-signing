@@ -20,14 +20,14 @@ jobs:
           args: kong spec
   unit-tests:
     needs: linting
-    name: Running unit tests.
+    name: Running tests.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - uses: Kong/kong-pongo-action@v1
         with:
-          kong_version: "2.8.x"
+          kong_version: "3.5.x"
       - run: pongo run
 
   build_rock:

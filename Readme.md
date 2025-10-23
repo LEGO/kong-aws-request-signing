@@ -60,12 +60,12 @@ type = "boolean"
 required = true
 default = false
 
-preserve_auth_header -- Controls if the bearer token will be passed to the upstream
+preserve_auth_header -- Controls if the header value will be passed to the upstream
 type = "boolean"
 required = true
 default = true
 
-preserve_auth_header_key -- The header key where the bearer token will be saved and passed to the upstream. works only if 'preserve_auth_header' parameter above is set to true.
+preserve_auth_header_key -- The header key where the header value will be saved and passed to the upstream. works only if 'preserve_auth_header' parameter above is set to true.
 type = "string"
 required = true
 default = "x-authorization"

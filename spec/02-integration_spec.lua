@@ -194,7 +194,8 @@ for _, strategy in helpers.all_strategies() do
                     method = "GET",
                     path = "/status/200",
                     headers = {
-                        ["Host"] = "test1.com"
+                        ["Host"] = "test1.com",
+                        authorization = "header.body.sig",
                     }
                 })
                 local body = assert.res_status(200, res)
@@ -223,7 +224,8 @@ for _, strategy in helpers.all_strategies() do
                     method = "GET",
                     path = "/status/200",
                     headers = {
-                        ["Host"] = "test3.com"
+                        ["Host"] = "test3.com",
+                        authorization = "header.body.sig",
                     }
                 })
                 local body = assert.res_status(200, res)

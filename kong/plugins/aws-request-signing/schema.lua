@@ -120,14 +120,14 @@ return {
   entity_checks = {
     {
       mutually_exclusive = {
-        "aws_account_id",
-        "aws_assume_role_arn",
+        "config.aws_account_id",
+        "config.aws_assume_role_arn",
       },
     },
     {
       at_least_one_of = {
-        "aws_account_id",
-        "aws_assume_role_arn",
+        "config.aws_account_id",
+        "config.aws_assume_role_arn",
       },
     },
   }

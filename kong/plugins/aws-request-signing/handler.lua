@@ -121,7 +121,6 @@ function AWSLambdaSTS:access(conf)
   local balancer_port = ngx.ctx.balancer_data.port
   local signed_host = balancer_host
   local signed_port = balancer_port
-
   if balancer_host ~= service.host then
     target_altered = true
   end

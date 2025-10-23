@@ -33,6 +33,10 @@ aws_service -- AWS Service you are trying to access (lambda and s3 were tested)
 type = "string"
 required = true
 
+auth_header -- The header key used to fetch the value sent to AWS STS as the 'WebIdentityToken' parameter. Defaults to 'authorization'
+type = "string"
+required = false
+
 override_target_host -- To be used when deploying multiple lambdas on a single Kong service (because lambdas have different URLs)
 type = "string"
 required = false

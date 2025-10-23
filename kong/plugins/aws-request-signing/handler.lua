@@ -109,11 +109,20 @@ function AWSLambdaSTS:access(conf)
     return kong.response.exit(500, { message = "The plugin must be bound to a service!" })
   end
 
+  local auth_header_key = conf.auth_header or "authorization"
+  local auth_header_value = request_headers[auth_header_key]
+  if not auth_header_value then
+    kong.log.notice("header value missing for: '".. auth_header_key .. "', skipping signing")
+    return
+  end
+
   if conf.preserve_auth_header then
     kong.service.request.set_headers({
-      [conf.preserve_auth_header_key] = request_headers.authorization
+      [conf.preserve_auth_header_key] = auth_header_value
     })
   end
+  -- removing the header, we either do not need it or we set it to the signed value later.
+  kong.service.request.clear_header(auth_header_key)
 
   local target_altered = false
 
@@ -156,7 +165,7 @@ function AWSLambdaSTS:access(conf)
 
   local sts_conf = {
     RoleArn = conf.aws_assume_role_arn,
-    WebIdentityToken = retrieve_token(request_headers["authorization"]),
+    WebIdentityToken = retrieve_token(auth_header_value),
     RoleSessionName = conf.aws_assume_role_name,
   }
 
@@ -171,10 +180,7 @@ function AWSLambdaSTS:access(conf)
     ["content-type"] = request_headers["content-type"]
   }
 
-  -- removing the authorization, we either do not need it or we set it again later.
-  kong.service.request.clear_header("authorization")
-
-  -- might fail if too big. is controlled by the folowing nginx params:
+  -- might fail if too big. is controlled by the following nginx params:
   -- nginx_http_client_max_body_size
   -- nginx_http_client_body_buffer_size
   local req_body, get_body_err = kong.request.get_raw_body()

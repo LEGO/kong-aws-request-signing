@@ -88,6 +88,12 @@ return {
             }
           },
           {
+            auth_header = {
+              type = "string",
+              required = false,
+            }
+          },
+          {
             preserve_auth_header = {
               type = "boolean",
               required = true,

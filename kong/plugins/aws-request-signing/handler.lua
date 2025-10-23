@@ -112,7 +112,7 @@ function AWSLambdaSTS:access(conf)
   local auth_header_key = conf.auth_header or "authorization"
   local auth_header_value = request_headers[auth_header_key]
   if not auth_header_value then
-    kong.log.notice("header value missing for: '".. auth_header_key .. "', skipping signing")
+    kong.log.notice("header value missing for: '" .. auth_header_key .. "', skipping signing")
     return
   end
 
@@ -164,7 +164,8 @@ function AWSLambdaSTS:access(conf)
 
 
   local sts_conf = {
-    RoleArn = conf.aws_assume_role_arn,
+    RoleArn = conf.aws_assume_role_arn or
+    ('arn:aws:iam::' .. conf.aws_account_id .. ':role/' .. conf.aws_assume_role_name),
     WebIdentityToken = retrieve_token(auth_header_value),
     RoleSessionName = conf.aws_assume_role_name,
   }

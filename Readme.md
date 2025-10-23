@@ -17,9 +17,13 @@ Note that this plugin cannot be used in combination with Kong [upstreams](https:
 ## Plugin configuration parameters
 
 ```lua
-aws_assume_role_arn -- ARN of the IAM role that the plugin will try to assume
+aws_assume_role_arn -- ARN of the IAM role that the plugin will try to assume, cannot be supplied together with `aws_account_id`. At least one must be specified.
 type = "string"
-required = true
+required = false
+
+aws_account_id -- ID of the AWS account the lambda is deployed to. Used to generate the ARN of the IAM role to be assumed. Cannot be specified together with `aws_assume_role_arn`. At least one must be specified.
+type = "number"
+required = false
 
 aws_assume_role_name -- Name of the role above.
 type = "string"

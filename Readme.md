@@ -17,9 +17,13 @@ Note that this plugin cannot be used in combination with Kong [upstreams](https:
 ## Plugin configuration parameters
 
 ```lua
-aws_assume_role_arn -- ARN of the IAM role that the plugin will try to assume
+aws_assume_role_arn -- ARN of the IAM role that the plugin will try to assume, cannot be supplied together with `aws_account_id`. At least one must be specified.
 type = "string"
-required = true
+required = false
+
+aws_account_id -- ID of the AWS account the lambda is deployed to. Used to generate the ARN of the IAM role to be assumed. Cannot be specified together with `aws_assume_role_arn`. At least one must be specified.
+type = "number"
+required = false
 
 aws_assume_role_name -- Name of the role above.
 type = "string"
@@ -32,6 +36,10 @@ required = true
 aws_service -- AWS Service you are trying to access (lambda and s3 were tested)
 type = "string"
 required = true
+
+auth_header -- The header key used to fetch the value sent to AWS STS as the 'WebIdentityToken' parameter. Defaults to 'authorization'
+type = "string"
+required = false
 
 override_target_host -- To be used when deploying multiple lambdas on a single Kong service (because lambdas have different URLs)
 type = "string"
@@ -56,12 +64,12 @@ type = "boolean"
 required = true
 default = false
 
-preserve_auth_header -- Controls if the bearer token will be passed to the upstream
+preserve_auth_header -- Controls if the header value will be passed to the upstream
 type = "boolean"
 required = true
 default = true
 
-preserve_auth_header_key -- The header key where the bearer token will be saved and passed to the upstream. works only if 'preserve_auth_header' parameter above is set to true.
+preserve_auth_header_key -- The header key where the header value will be saved and passed to the upstream. works only if 'preserve_auth_header' parameter above is set to true.
 type = "string"
 required = true
 default = "x-authorization"

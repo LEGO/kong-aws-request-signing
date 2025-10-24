@@ -194,7 +194,8 @@ for _, strategy in helpers.all_strategies() do
                     method = "GET",
                     path = "/status/200",
                     headers = {
-                        ["Host"] = "test1.com"
+                        ["Host"] = "test1.com",
+                        authorization = "header.body.sig",
                     }
                 })
                 local body = assert.res_status(200, res)
@@ -210,7 +211,8 @@ for _, strategy in helpers.all_strategies() do
             it("should override host when configured", function()
                 local res = proxy_client:get("/testoverride", {
                     headers = {
-                        ["Host"] = "test2.com"
+                        ["Host"] = "test2.com",
+                        authorization = "header.body.sig",
                     }
                 })
                 local body = assert.res_status(200, res)
@@ -223,7 +225,8 @@ for _, strategy in helpers.all_strategies() do
                     method = "GET",
                     path = "/status/200",
                     headers = {
-                        ["Host"] = "test3.com"
+                        ["Host"] = "test3.com",
+                        authorization = "header.body.sig",
                     }
                 })
                 local body = assert.res_status(200, res)

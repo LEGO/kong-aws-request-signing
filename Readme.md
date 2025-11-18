@@ -103,10 +103,10 @@ There are two things necessary to make a custom plugin work in Kong:
 The easiest way to install the plugin is using `luarocks`.
 
 ```sh
-luarocks install https://github.com/LEGO/kong-aws-request-signing/raw/main/rocks/kong-aws-request-signing-1.0.8-3.all.rock
+luarocks install https://github.com/LEGO/kong-aws-request-signing/raw/main/rocks/kong-aws-request-signing-1.0.9-3.all.rock
 ```
 
-You can substitute `1.0.8-3` in the command above with any other version you want to install.
+You can substitute `1.0.9-3` in the command above with any other version you want to install.
 
 If running Kong using the Helm chart, you will need to create a config map with the plugin files and mount it to `/opt/kong/plugins/aws-request-signing`. You can read more about this on [Kong's website.](https://docs.konghq.com/kubernetes-ingress-controller/latest/guides/setting-up-custom-plugins/)
 

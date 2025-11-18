@@ -24,8 +24,11 @@ return {
           },
           {
             aws_account_id = {
-              type = "number",
+              -- string as it might start with 00
+              type = "string",
+              description = "AWS account ID",
               required = false,
+              match = "^%d+$"
             }
           },
           {

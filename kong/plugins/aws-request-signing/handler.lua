@@ -91,7 +91,7 @@ local function get_iam_credentials(sts_conf, refresh, return_sts_error)
         return kong.response.exit(401, { message = generic_error })
       end
     end
-    kong.log.debug("expiring key , invalidated iam_cache and fetched fresh credentials!")
+    kong.log.debug("expiring key, invalidated iam_cache and fetched fresh credentials!")
   end
   return iam_role_credentials
 end

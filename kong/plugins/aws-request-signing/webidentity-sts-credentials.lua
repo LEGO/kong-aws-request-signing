@@ -61,6 +61,7 @@ local function fetch_assume_role_credentials(assume_role_arn,
       sts_status = res.status,
       sts_body = json.decode(res.body)
     })
+    kong.log.set_serialize_value("aws-request-signing.sts_response", err_s)
     return nil, err_s
   end
 

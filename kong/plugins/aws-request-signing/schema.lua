@@ -133,5 +133,20 @@ return {
         "config.aws_assume_role_arn",
       },
     },
+    {
+      custom_entity_check = {
+        field_sources = { "config.aws_assume_role_arn", "config.aws_assume_role_name" },
+        fn = function(entity)
+          local arn = entity.config.aws_assume_role_arn
+          local name = entity.config.aws_assume_role_name
+          if type(arn) == "string" and type(name) == "string" then
+            if arn:sub(-#name) ~= name then
+              return nil, "'aws_assume_role_arn' doesn't match the 'aws_assume_role_name'"
+            end
+          end
+          return true
+        end,
+      },
+    },
   }
 }

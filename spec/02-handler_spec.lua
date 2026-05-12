@@ -5,7 +5,7 @@ local say = require("say")
 -- Register custom "has_fields" matcher for partial table matching in spy assertions
 say:set("assertion.has_fields.positive", "Expected table to contain fields:\n%s")
 say:set("assertion.has_fields.negative", "Expected table to NOT contain fields:\n%s")
-assert:register("matcher", "has_fields", function(state, arguments, level)
+assert:register("matcher", "has_fields", function(_, arguments, _)
   local expected = arguments[1]
   return function(actual)
     if type(actual) ~= "table" then return false end
@@ -61,6 +61,7 @@ local function build_signed_request()
   return {
     headers = {
       host = "target.example.com",
+      -- luacheck: max line length 200
       authorization = "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20260511/us-east-1/execute-api/aws4_request, SignedHeaders=host;x-amz-date, Signature=abc123",
       ["x-amz-date"] = "20260511T000000Z",
       ["x-amz-security-token"] = "FwoGZXIvYXdzEBYaDH7GZXample",
@@ -129,9 +130,7 @@ local function reset_mocks()
       set_target = spy.new(function() end),
     },
     response = {
-      exit = spy.new(function(status, body)
-        mock_response_exit_called = true
-        mock_response_exit_args = { status = status, body = body }
+      exit = spy.new(function(_, _)
       end),
     },
     log = {
@@ -140,7 +139,7 @@ local function reset_mocks()
       debug = spy.new(function() end),
     },
     cache = {
-      get = spy.new(function(_, _, _, fetch_fn, sts_conf)
+      get = spy.new(function(_, _, _, _, _)
         return mock_iam_credentials
       end),
       invalidate_local = spy.new(function() end),
@@ -164,7 +163,7 @@ local function reload_handler()
   package.loaded["kong.plugins.aws-request-signing.util"] = nil
 
   -- mock sigv4
-  mock_sigv4_fn = spy.new(function(opts)
+  mock_sigv4_fn = spy.new(function(_)
     if mock_sigv4_err then
       return nil, mock_sigv4_err
     end
@@ -187,7 +186,7 @@ local function reload_handler()
       end
       return nil
     end),
-    get_iam_credentials = spy.new(function(sts_conf, refresh, return_sts_error)
+    get_iam_credentials = spy.new(function(_, _, _)
       return mock_iam_credentials
     end),
   }
@@ -254,7 +253,8 @@ describe("handler.access()", function()
       handler:access(build_conf())
 
       assert.spy(kong.response.exit).was.called(1)
-      assert.spy(kong.response.exit).was.called_with(400, { message = "Request body exceeds size limit and cannot be used by plugins." })
+      assert.spy(kong.response.exit).was
+      .called_with(400, { message = "Request body exceeds size limit and cannot be used by plugins." })
     end)
 
     it("does not set headers when auth header value is nil (auth_header key absent)", function()
@@ -462,7 +462,8 @@ describe("handler.access()", function()
       handler:access(build_conf())
 
       assert.spy(kong.response.exit).was.called(1)
-      assert.spy(kong.response.exit).was.called_with(400, { message = "Request body exceeds size limit and cannot be used by plugins." })
+      assert.spy(kong.response.exit).was
+      .called_with(400, { message = "Request body exceeds size limit and cannot be used by plugins." })
     end)
 
     it("exits 400 when body is nil without explicit error", function()
@@ -684,7 +685,8 @@ describe("handler.access()", function()
 
       handler:access(build_conf())
 
-      assert.spy(kong.response.exit).was.called_with(500, { message = "Region mismatch: got us-west-2 expected us-east-1" })
+      assert.spy(kong.response.exit).was
+      .called_with(500, { message = "Region mismatch: got us-west-2 expected us-east-1" })
     end)
 
     it("exits 400 when body error occurs", function()
@@ -697,7 +699,8 @@ describe("handler.access()", function()
 
       assert.spy(kong.log.err).was.called(1)
       assert.spy(kong.response.exit).was.called(1)
-      assert.spy(kong.response.exit).was.called_with(400, { message = "Request body exceeds size limit and cannot be used by plugins." })
+      assert.spy(kong.response.exit).was
+      .called_with(400, { message = "Request body exceeds size limit and cannot be used by plugins." })
     end)
 
     it("errors when get_iam_credentials returns nil (handler does not guard nil credentials)", function()

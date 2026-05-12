@@ -63,7 +63,6 @@ _G.ngx = ngx
 _G.kong = kong
 _G._TEST = true -- tell scripts we're testing so it can export the public functions
 
-local handler = require("kong.plugins.aws-request-signing.handler")
 local util = require("kong.plugins.aws-request-signing.util")
 
 -- FIXME: describe/it arguments are meant to be consumed by humans, no need to make them resemble identifiers.

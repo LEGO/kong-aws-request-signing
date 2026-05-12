@@ -1,6 +1,6 @@
 local plugin_name = "aws-request-signing"
 local package_name = "kong-" .. plugin_name
-local package_version = "1.0.9"
+local package_version = "1.1.0"
 local rockspec_revision = "3"
 
 local github_account_name = "LEGO"
@@ -33,5 +33,6 @@ build = {
     ["kong.plugins."..plugin_name..".sigv4"] = "kong/plugins/"..plugin_name.."/sigv4.lua",
     ["kong.plugins."..plugin_name..".webidentity-sts-credentials"] = "kong/plugins/"..plugin_name.."/webidentity-sts-credentials.lua",
     ["kong.plugins."..plugin_name..".schema"] = "kong/plugins/"..plugin_name.."/schema.lua",
+    ["kong.plugins."..plugin_name..".util"] = "kong/plugins/"..plugin_name.."/util.lua",
   }
 }

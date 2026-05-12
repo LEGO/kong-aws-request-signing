@@ -13,6 +13,7 @@ local openssl_hmac = require "resty.openssl.hmac"
 local ngx = ngx
 
 local ALGORITHM = "AWS4-HMAC-SHA256"
+local S3_EXPIRES_SECONDS = 300
 
 local function url_encode(str)
   if str then
@@ -117,7 +118,7 @@ local function derive_signing_key(kSecret, date, region, service)
   return hmac(kService, "aws4_request")
 end
 
-local function prepare_awsv4_request(opts)
+local function prepare_aws_v4_request(opts)
   local region = opts.region
   local service = opts.service
   local request_method = opts.method
@@ -153,13 +154,11 @@ local function prepare_awsv4_request(opts)
   request_headers["host"] = host_header
   request_headers["x-amz-content-sha256"] = bodyHash
 
-  local expiresInSeconds = 300
-
   if not opts.sign_query then
     request_headers["x-amz-date"] = request_date
     request_headers["x-amz-security-token"] = opts.session_token
     if service == "s3" then
-      request_headers["x-amz-expires"] = expiresInSeconds .. ""
+      request_headers["x-amz-expires"] = S3_EXPIRES_SECONDS .. ""
     end
   end
 
@@ -168,7 +167,7 @@ local function prepare_awsv4_request(opts)
   if opts.sign_query then
     local expires_query_param = ""
     if service == "s3" then
-      expires_query_param = "&X-Amz-Expires=" .. expiresInSeconds
+      expires_query_param = "&X-Amz-Expires=" .. S3_EXPIRES_SECONDS
     end
 
     request_query = request_query
@@ -227,4 +226,4 @@ local function prepare_awsv4_request(opts)
   }
 end
 
-return prepare_awsv4_request
+return prepare_aws_v4_request

@@ -4,7 +4,7 @@ local sts                              = require "kong.plugins.aws-request-signi
 
 local IAM_CREDENTIALS_CACHE_KEY_PATTERN = "plugin.aws-request-signing.iam_role_temp_creds.%s"
 local GENERIC_STS_ERROR                 = "Error fetching STS credentials." ..
-                                          " Enable 'return_sts_error' in config for details."
+                                          " Enable 'return_aws_sts_error' in config for details."
 
 local function handle_sts_error(err, return_sts_error)
   kong.log.err(err)

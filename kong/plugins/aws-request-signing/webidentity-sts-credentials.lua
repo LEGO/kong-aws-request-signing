@@ -16,11 +16,6 @@ local sts_host = 'https://sts.amazonaws.com'
 
 local function fetch_assume_role_credentials(sts_conf)
   local assume_role_arn = sts_conf.RoleArn
-
-  if not assume_role_arn then
-    return nil, "Missing required parameter 'assume_role_arn' for fetching STS credentials"
-  end
-
   kong.log.debug('Trying to assume role [', assume_role_arn, ']')
 
   -- build the url and signature to assume role

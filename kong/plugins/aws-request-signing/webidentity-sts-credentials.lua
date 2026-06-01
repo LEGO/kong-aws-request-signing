@@ -10,17 +10,12 @@ local ngx_now = ngx.now
 local kong = kong
 
 local DEFAULT_SESSION_DURATION_SECONDS = 3600
-local DEFAULT_HTTP_CLINET_TIMEOUT = 60000
+local DEFAULT_HTTP_CLIENT_TIMEOUT = 60000
 
 local sts_host = 'https://sts.amazonaws.com'
 
-local function fetch_assume_role_credentials(assume_role_arn,
-                                             role_session_name,
-                                             web_identity_token)
-  if not assume_role_arn then
-    return nil, "Missing required parameter 'assume_role_arn' for fetching STS credentials"
-  end
-
+local function fetch_assume_role_credentials(sts_conf)
+  local assume_role_arn = sts_conf.RoleArn
   kong.log.debug('Trying to assume role [', assume_role_arn, ']')
 
   -- build the url and signature to assume role
@@ -32,18 +27,17 @@ local function fetch_assume_role_credentials(assume_role_arn,
     Action          = "AssumeRoleWithWebIdentity",
     DurationSeconds = DEFAULT_SESSION_DURATION_SECONDS,
     RoleArn         = assume_role_arn,
-    RoleSessionName = role_session_name,
+    RoleSessionName = sts_conf.RoleSessionName,
     Version         = "2011-06-15",
-    WebIdentityToken = web_identity_token
+    WebIdentityToken = sts_conf.WebIdentityToken
   }
 
-  -- Call STS to assume role
   local client = http.new()
-  client:set_timeout(DEFAULT_HTTP_CLINET_TIMEOUT)
+  client:set_timeout(DEFAULT_HTTP_CLIENT_TIMEOUT)
   local res, err = client:request_uri(sts_host, {
     method = "GET",
     headers = assume_role_request_headers,
-    ssl_verify = false,
+    ssl_verify = true,
     query = assume_role_query_params
   })
 
@@ -56,11 +50,13 @@ local function fetch_assume_role_credentials(assume_role_arn,
   end
 
   if res.status ~= 200 then
-    local err_s = json.encode({
+    local err_t = {
       message  = 'Unable to assume role [' .. assume_role_arn .. ']',
       sts_status = res.status,
       sts_body = json.decode(res.body)
-    })
+    }
+    local err_s = json.encode(err_t)
+    kong.log.set_serialize_value("aws-request-signing.sts_response", err_t)
     return nil, err_s
   end
 
